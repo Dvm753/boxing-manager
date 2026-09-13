@@ -1,0 +1,53 @@
+# STANDARD_ROUTING — який документ читати для якого типу задачі.
+# Агент читає тільки перелічені файли. Читання всього репозиторію заборонене:
+# це головне джерело дрейфу і зайвих переписувань.
+
+version: 1
+project: boxing-manager
+
+always_read:
+  - STATE.md
+  - AGENTS.md
+  - governance/REPOSITORY_RECONCILIATION_PROTOCOL.md
+
+routes:
+  architecture_change:
+    read: [docs/ARCHITECTURE.md, docs/MODULE_CONTRACTS.md, adr/]
+    gate: ADR + "Погоджено"
+
+  fight_engine:
+    read: [docs/FIGHT_ENGINE_SPEC.md, docs/DOMAIN_MODEL.md, docs/MODULE_CONTRACTS.md]
+    write_allowed: [packages/engine-fight/**, packages/core-model/**]
+    gate: golden-master tests + determinism test
+
+  world_engine:
+    read: [docs/WORLD_ENGINE_SPEC.md, docs/DOMAIN_MODEL.md, docs/MODULE_CONTRACTS.md]
+    write_allowed: [packages/engine-world/**]
+    gate: 10-year headless simulation sanity check
+
+  domain_model:
+    read: [docs/DOMAIN_MODEL.md, docs/analysis/FM_ANALYSIS.md]
+    write_allowed: [packages/core-model/**]
+    gate: ADR if schema version changes
+
+  data_and_generation:
+    read: [docs/DOMAIN_MODEL.md, docs/WORLD_ENGINE_SPEC.md]
+    write_allowed: [packages/data/**]
+    gate: schema validation
+
+  ui:
+    read: [docs/ARCHITECTURE.md, docs/MODULE_CONTRACTS.md]
+    write_allowed: [apps/**]
+    forbidden: "any domain rule or calculation in UI layer"
+
+  documentation:
+    read: [docs/**]
+    gate: none
+
+escalation:
+  - condition: "STATE.md суперечить фактичному вмісту"
+    action: "СТОП, доповісти, нічого не змінювати"
+  - condition: "задача виходить за межі поточної фази ROADMAP"
+    action: "СТОП, запропонувати ADR"
+  - condition: "потрібна нова зовнішня залежність"
+    action: "СТОП, запропонувати ADR"
