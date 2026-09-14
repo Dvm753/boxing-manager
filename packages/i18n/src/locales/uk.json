@@ -132,5 +132,14 @@
   "attribute.workRate": "працьовитість",
   "attribute.discipline": "дисципліна",
   "plural.fights": "{n} бій | {n} бої | {n} боїв",
-  "plural.rounds": "{n} раунд | {n} раунди | {n} раундів"
+  "plural.rounds": "{n} раунд | {n} раунди | {n} раундів",
+  "news.fightWon": "{winner} переміг {loser} — {method}, раунд {round}",
+  "news.fightDrawn": "{winner} і {loser} — нічия після {round} раундів",
+  "ui.news": "Новини світу",
+  "ui.simulate": "Симулювати сезон",
+  "ui.day": "День",
+  "ui.tier": "Рівень",
+  "ui.fightsHeld": "боїв проведено",
+  "ui.newsItems": "новин",
+  "ui.injured": "травмованих"
 }

@@ -132,5 +132,14 @@
   "attribute.workRate": "laboriosidad",
   "attribute.discipline": "disciplina",
   "plural.fights": "{n} combate | {n} combates",
-  "plural.rounds": "{n} asalto | {n} asaltos"
+  "plural.rounds": "{n} asalto | {n} asaltos",
+  "news.fightWon": "{winner} venció a {loser} — {method}, asalto {round}",
+  "news.fightDrawn": "{winner} y {loser} empataron tras {round} asaltos",
+  "ui.news": "Noticias del mundo",
+  "ui.simulate": "Simular una temporada",
+  "ui.day": "Día",
+  "ui.tier": "Nivel",
+  "ui.fightsHeld": "combates disputados",
+  "ui.newsItems": "noticias",
+  "ui.injured": "lesionados"
 }

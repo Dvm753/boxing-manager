@@ -132,5 +132,14 @@
   "attribute.workRate": "travail à l'entraînement",
   "attribute.discipline": "discipline",
   "plural.fights": "{n} combat | {n} combats",
-  "plural.rounds": "{n} round | {n} rounds"
+  "plural.rounds": "{n} round | {n} rounds",
+  "news.fightWon": "{winner} a battu {loser} — {method}, round {round}",
+  "news.fightDrawn": "{winner} et {loser} font match nul après {round} rounds",
+  "ui.news": "Actualités du monde",
+  "ui.simulate": "Simuler une saison",
+  "ui.day": "Jour",
+  "ui.tier": "Niveau",
+  "ui.fightsHeld": "combats disputés",
+  "ui.newsItems": "actualités",
+  "ui.injured": "blessés"
 }

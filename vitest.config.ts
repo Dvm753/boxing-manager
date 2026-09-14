@@ -9,6 +9,7 @@ export default defineConfig({
       '@bm/engine-fight': resolve(__dirname, 'packages/engine-fight/src/index.ts'),
       '@bm/sim-cli': resolve(__dirname, 'packages/sim-cli/src/index.ts'),
       '@bm/i18n': resolve(__dirname, 'packages/i18n/src/index.ts'),
+      '@bm/engine-world': resolve(__dirname, 'packages/engine-world/src/index.ts'),
     },
   },
   test: { include: ['packages/**/test/**/*.test.ts'] },

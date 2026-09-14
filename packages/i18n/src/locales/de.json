@@ -132,5 +132,14 @@
   "attribute.workRate": "Trainingsfleiß",
   "attribute.discipline": "Disziplin",
   "plural.fights": "{n} Kampf | {n} Kämpfe",
-  "plural.rounds": "{n} Runde | {n} Runden"
+  "plural.rounds": "{n} Runde | {n} Runden",
+  "news.fightWon": "{winner} schlug {loser} — {method}, Runde {round}",
+  "news.fightDrawn": "{winner} und {loser} trennten sich nach {round} Runden unentschieden",
+  "ui.news": "Weltnachrichten",
+  "ui.simulate": "Saison simulieren",
+  "ui.day": "Tag",
+  "ui.tier": "Stufe",
+  "ui.fightsHeld": "ausgetragene Kämpfe",
+  "ui.newsItems": "Meldungen",
+  "ui.injured": "verletzt"
 }

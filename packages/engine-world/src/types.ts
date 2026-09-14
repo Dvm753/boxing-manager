@@ -1,0 +1,64 @@
+import type { Fighter } from '@bm/core-model';
+import type { FightMethod } from '@bm/engine-fight';
+
+/** Рівень деталізації симуляції (ADR-0015). Похідна від стану, ніколи не зберігається. */
+export type SimTier = 1 | 2 | 3;
+
+export interface ScheduledFight {
+  id: string;
+  /** Номер дня, не дата: обчислення йдуть у днях (ADR-0016). */
+  day: number;
+  aId: string;
+  bId: string;
+  scheduledRounds: number;
+}
+
+export interface FightRecordEntry {
+  fightId: string;
+  day: number;
+  opponentId: string;
+  method: FightMethod;
+  won: boolean | null;
+  endingRound: number;
+  tier: SimTier;
+}
+
+/**
+ * Новина несе **ключ перекладу і параметри**, а не готовий рядок (ADR-0017):
+ * світ не знає, якою мовою його читатимуть.
+ */
+export interface NewsItem {
+  day: number;
+  key: string;
+  params: Record<string, string | number>;
+}
+
+export interface World {
+  day: number;
+  seed: number;
+  fighters: Record<string, Fighter>;
+  schedule: readonly ScheduledFight[];
+  history: Record<string, readonly FightRecordEntry[]>;
+  /** Дні, до яких боєць недоступний через травму. */
+  unavailableUntil: Record<string, number>;
+  playerFighterIds: readonly string[];
+  news: readonly NewsItem[];
+}
+
+export type WorldEvent =
+  | { t: 'DayAdvanced'; day: number }
+  | {
+      t: 'FightCompleted'; fightId: string; day: number; aId: string; bId: string;
+      method: FightMethod; winnerId: string | null; endingRound: number; tier: SimTier;
+    }
+  | { t: 'FighterRecordUpdated'; fighterId: string; day: number }
+  | { t: 'FighterWearIncreased'; fighterId: string; rounds: number; headDelta: number }
+  | { t: 'FighterInjured'; fighterId: string; daysOut: number }
+  | { t: 'NewsCreated'; key: string; params: Record<string, string | number> };
+
+export type WorldEventType = WorldEvent['t'];
+
+export interface PlayerCommand {
+  t: 'scheduleFight';
+  fight: ScheduledFight;
+}

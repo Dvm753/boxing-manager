@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": "src", "composite": true, "resolveJsonModule": true },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../core-model" }, { "path": "../data" }, { "path": "../engine-fight" }]
+}

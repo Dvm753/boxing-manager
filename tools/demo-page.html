@@ -107,6 +107,15 @@
 
 <div class="card" id="fightpanel" style="margin-top:18px;display:none"></div>
 
+<div class="scope" id="seasonpanel">
+  <h3 data-i18n="ui.news">Новини світу</h3>
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+    <button id="runseason" data-i18n="ui.simulate">Симулювати сезон</button>
+    <span class="meta" id="seasonmeta" style="color:var(--dim);font-size:13px"></span>
+  </div>
+  <div id="seasonout"></div>
+</div>
+
 <div class="scope">
   <h3>Що тут працює насправді</h3>
   <ul>
@@ -123,7 +132,10 @@
   <ul>
     <li class="yes">Рушій бою: обміни, позиції, градації влучання, нокдаути, суддівство — <code>ADR-0003</code>, <code>ADR-0012</code></li>
     <li class="yes">Гейт фази 0 пройдено: M1, M3, M4 у коридорах <code>ADR-0008</code> на 2500 боях × 3 групи</li>
-    <li class="no">Календаря, контрактів, рейтингів, промоутерів, грошей</li>
+    <li class="yes">Календар і тік дня на подіях домену — <code>ADR-0016</code>; чистий календар без <code>Date</code></li>
+    <li class="yes">Три рівні деталізації світу — <code>ADR-0015</code>, з доведеною еквівалентністю агрегатів</li>
+    <li class="yes">Шість мов, перемикається на льоту — <code>ADR-0017</code></li>
+    <li class="no">Контрактів, рейтингів, промоутерів, грошей — фаза 2</li>
     <li class="no">Розподілу раунду зупинки і нокдаунів у гейті — винесено у фазу 1 (<code>ADR-0009</code>)</li>
     <li class="no">Плану бою і вказівок кутка — контракт зафіксовано (ADR-0014), реалізація у фазі 1</li>
   </ul>
@@ -148,7 +160,7 @@
   });
   locSel.value = loc;
   locSel.addEventListener('change', function(){
-    loc = locSel.value; T = BM.createTranslator(loc); applyStatic(); render(); renderFight();
+    loc = locSel.value; T = BM.createTranslator(loc); applyStatic(); render(); renderFight(); renderSeason();
   });
 
   function applyStatic(){
@@ -335,6 +347,37 @@
         (r.scorecards.length ? ' · '+t('ui.scorecards')+' '+r.scorecards.map(function(c){return c[0]+'–'+c[1];}).join(', ') : '')+'</div>'+
       '<table style="width:100%;font-size:13px"><thead><tr><th>'+t('ui.round')+'</th><th>A '+t('ui.landedThrown')+'</th><th>B '+t('ui.landedThrown')+'</th><th>'+t('ui.knockdownsShort')+'</th></tr></thead><tbody>'+rows+'</tbody></table>'+
       '<div class="hidden-note">ADR-0003: '+T.plural('plural.fights', 1)+' — той самий seed і ті самі бійці завжди дають той самий результат.</div>';
+  }
+
+  var season = null;
+  document.getElementById('runseason').addEventListener('click', function(){
+    var btn = document.getElementById('runseason');
+    btn.disabled = true; btn.textContent = '…';
+    setTimeout(function(){
+      season = BM.simulateSeason(parseInt(document.getElementById('seed').value,10)||0, 2000, 365);
+      btn.disabled = false; renderSeason();
+    }, 20);
+  });
+
+  function renderSeason(){
+    if(!season){ return; }
+    document.getElementById('seasonmeta').textContent =
+      t('ui.day')+' '+season.date+' · '+season.fightsHeld+' '+t('ui.fightsHeld')+
+      ' · '+season.injured+' '+t('ui.injured')+
+      ' · '+t('ui.tier')+' 1/2/3: '+season.tierCounts[1]+'/'+season.tierCounts[2]+'/'+season.tierCounts[3]+
+      ' ('+t('ui.fightsHeld')+': '+(season.byTier[1]||0)+'/'+(season.byTier[2]||0)+'/'+(season.byTier[3]||0)+')';
+    var html = season.news.map(function(n){
+      var p = {
+        winner: esc(season.names[n.params.winner] || '—'),
+        loser: esc(season.names[n.params.loser] || '—'),
+        method: esc(t('method.'+n.params.method)),
+        round: n.params.round
+      };
+      return '<div style="padding:5px 0;border-bottom:1px solid #23262f;font-size:13.5px">'+
+        '<span style="color:var(--dim);font-family:var(--mono);font-size:12px">'+BM.formatIso(n.day)+'</span>  '+
+        t(n.key, p)+'</div>';
+    }).join('');
+    document.getElementById('seasonout').innerHTML = html;
   }
 
   document.getElementById('go').addEventListener('click', function(){ slotA=null; slotB=null; renderFight(); build(); });

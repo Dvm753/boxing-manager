@@ -132,5 +132,14 @@
   "attribute.workRate": "applicazione",
   "attribute.discipline": "disciplina",
   "plural.fights": "{n} incontro | {n} incontri",
-  "plural.rounds": "{n} ripresa | {n} riprese"
+  "plural.rounds": "{n} ripresa | {n} riprese",
+  "news.fightWon": "{winner} ha battuto {loser} — {method}, ripresa {round}",
+  "news.fightDrawn": "{winner} e {loser} hanno pareggiato dopo {round} riprese",
+  "ui.news": "Notizie dal mondo",
+  "ui.simulate": "Simula una stagione",
+  "ui.day": "Giorno",
+  "ui.tier": "Livello",
+  "ui.fightsHeld": "incontri disputati",
+  "ui.newsItems": "notizie",
+  "ui.injured": "infortunati"
 }

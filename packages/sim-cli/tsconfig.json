@@ -2,5 +2,8 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "outDir": "dist", "rootDir": "src", "composite": true },
   "include": ["src/**/*"],
-  "references": [{ "path": "../core-model" }, { "path": "../data" }, { "path": "../engine-fight" }]
+  "references": [
+    { "path": "../core-model" }, { "path": "../data" },
+    { "path": "../engine-fight" }, { "path": "../engine-world" }
+  ]
 }
