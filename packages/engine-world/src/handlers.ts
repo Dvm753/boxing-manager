@@ -19,6 +19,7 @@ const recordHandler: EventHandler = (event, world) => {
     method: event.method,
     won: event.winnerId === null ? null : event.winnerId === self,
     endingRound: event.endingRound,
+    scheduledRounds: event.scheduledRounds,
     tier: event.tier,
   });
 

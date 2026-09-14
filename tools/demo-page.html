@@ -116,6 +116,11 @@
   <div id="seasonout"></div>
 </div>
 
+<div class="scope" id="rankpanel" style="display:none">
+  <h3 data-i18n="ui.rankings">Рейтинги</h3>
+  <div id="rankout" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px"></div>
+</div>
+
 <div class="scope">
   <h3>Що тут працює насправді</h3>
   <ul>
@@ -135,7 +140,8 @@
     <li class="yes">Календар і тік дня на подіях домену — <code>ADR-0016</code>; чистий календар без <code>Date</code></li>
     <li class="yes">Три рівні деталізації світу — <code>ADR-0015</code>, з доведеною еквівалентністю агрегатів</li>
     <li class="yes">Шість мов, перемикається на льоту — <code>ADR-0017</code></li>
-    <li class="no">Контрактів, рейтингів, промоутерів, грошей — фаза 2</li>
+    <li class="yes">Рейтинги чотирьох санкційних органів — <code>ADR-0018</code>; похідна від історії, публікація щомісяця</li>
+    <li class="no">Титулів, обов'язкових захистів, контрактів, промоутерів, грошей — фаза 2</li>
     <li class="no">Розподілу раунду зупинки і нокдаунів у гейті — винесено у фазу 1 (<code>ADR-0009</code>)</li>
     <li class="no">Плану бою і вказівок кутка — контракт зафіксовано (ADR-0014), реалізація у фазі 1</li>
   </ul>
@@ -160,7 +166,7 @@
   });
   locSel.value = loc;
   locSel.addEventListener('change', function(){
-    loc = locSel.value; T = BM.createTranslator(loc); applyStatic(); render(); renderFight(); renderSeason();
+    loc = locSel.value; T = BM.createTranslator(loc); applyStatic(); render(); renderFight(); renderSeason(); renderRankings();
   });
 
   function applyStatic(){
@@ -378,6 +384,23 @@
         t(n.key, p)+'</div>';
     }).join('');
     document.getElementById('seasonout').innerHTML = html;
+    renderRankings();
+  }
+
+  function renderRankings(){
+    if(!season || !season.rankings){ return; }
+    document.getElementById('rankpanel').style.display = 'block';
+    document.getElementById('rankout').innerHTML = season.rankings.map(function(r){
+      var rows = r.rows.map(function(x){
+        return '<div style="display:flex;gap:8px;font-size:13px;padding:2px 0">'+
+          '<span style="color:var(--dim);font-family:var(--mono);width:18px;text-align:right">'+x.position+'</span>'+
+          '<span style="flex:1;overflow:hidden;text-overflow:ellipsis">'+esc(x.name)+'</span>'+
+          '<span style="font-family:var(--mono);color:var(--dim)">'+x.score.toFixed(2)+'</span></div>';
+      }).join('') || '<div class="meta">'+t('ui.noRanking')+'</div>';
+      return '<div><h3 style="margin:0 0 2px;font-size:13px">'+esc(t('body.'+r.bodyId))+'</h3>'+
+        '<div style="color:var(--dim);font-size:11.5px;margin-bottom:6px">'+esc(t('character.'+r.characterKey))+
+        ' · '+esc(t('weightClass.'+season.rankedClass))+'</div>'+rows+'</div>';
+    }).join('');
   }
 
   document.getElementById('go').addEventListener('click', function(){ slotA=null; slotB=null; renderFight(); build(); });

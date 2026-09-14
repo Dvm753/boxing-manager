@@ -4,4 +4,5 @@ export * from './event-bus.js';
 export * from './handlers.js';
 export * from './tiers.js';
 export * from './resolve-fight.js';
+export * from './rankings.js';
 export * from './advance-day.js';

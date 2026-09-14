@@ -1,0 +1,42 @@
+[
+  {
+    "id": "gbc",
+    "characterKey": "traditional",
+    "activityWeight": 0.8,
+    "qualityWeight": 1.4,
+    "inertia": 0.55,
+    "homeRegionBias": 0.05,
+    "marketabilityWeight": 0.2,
+    "windowMonths": 36
+  },
+  {
+    "id": "uba",
+    "characterKey": "activity",
+    "activityWeight": 1.6,
+    "qualityWeight": 0.9,
+    "inertia": 0.2,
+    "homeRegionBias": 0.0,
+    "marketabilityWeight": 0.3,
+    "windowMonths": 24
+  },
+  {
+    "id": "ipb",
+    "characterKey": "commercial",
+    "activityWeight": 1.0,
+    "qualityWeight": 0.7,
+    "inertia": 0.35,
+    "homeRegionBias": 0.25,
+    "marketabilityWeight": 1.2,
+    "windowMonths": 30
+  },
+  {
+    "id": "sbf",
+    "characterKey": "strict",
+    "activityWeight": 1.2,
+    "qualityWeight": 1.6,
+    "inertia": 0.15,
+    "homeRegionBias": 0.0,
+    "marketabilityWeight": 0.0,
+    "windowMonths": 18
+  }
+]

@@ -12,7 +12,7 @@ function makeWorld(seed = 2026, count = 600): World {
   for (const f of generated.fighters) fighters[f.id] = f;
   return {
     day: 20000, seed, fighters, schedule: [], history: {},
-    unavailableUntil: {}, playerFighterIds: [], news: [],
+    unavailableUntil: {}, playerFighterIds: [], news: [], rankings: {}, rankingsPublishedOn: 0,
   };
 }
 

@@ -19,7 +19,7 @@ export function buildWorld(seed: number, fighterCount: number, startDay = 20454)
   for (const f of generated.fighters) fighters[f.id] = f;
   return {
     day: startDay, seed, fighters, schedule: [], history: {},
-    unavailableUntil: {}, playerFighterIds: [], news: [],
+    unavailableUntil: {}, playerFighterIds: [], news: [], rankings: {}, rankingsPublishedOn: 0,
   };
 }
 

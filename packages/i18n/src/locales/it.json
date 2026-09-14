@@ -141,5 +141,18 @@
   "ui.tier": "Livello",
   "ui.fightsHeld": "incontri disputati",
   "ui.newsItems": "notizie",
-  "ui.injured": "infortunati"
+  "ui.injured": "infortunati",
+  "body.gbc": "Consiglio Globale della Boxe",
+  "body.uba": "Alleanza Unita della Boxe",
+  "body.ipb": "Boxe Professionistica Internazionale",
+  "body.sbf": "Federazione Suprema della Boxe",
+  "character.traditional": "tradizionale",
+  "character.activity": "orientata all'attività",
+  "character.commercial": "commerciale",
+  "character.strict": "rigorosa",
+  "ui.rankings": "Classifiche",
+  "ui.position": "N.",
+  "ui.body": "Organismo",
+  "ui.score": "Punti",
+  "ui.noRanking": "Nessuna classifica pubblicata"
 }

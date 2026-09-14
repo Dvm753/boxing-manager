@@ -20,6 +20,8 @@ export interface FightRecordEntry {
   method: FightMethod;
   won: boolean | null;
   endingRound: number;
+  /** Потрібен рейтингу: 12-раундовий бій вагоміший за 6-раундовий (ADR-0018). */
+  scheduledRounds: number;
   tier: SimTier;
 }
 
@@ -33,6 +35,13 @@ export interface NewsItem {
   params: Record<string, string | number>;
 }
 
+/** Рейтинг — **похідна від історії** (ADR-0018), тому зберігається лише остання публікація. */
+export interface RankingEntry {
+  fighterId: string;
+  position: number;
+  score: number;
+}
+
 export interface World {
   day: number;
   seed: number;
@@ -43,18 +52,24 @@ export interface World {
   unavailableUntil: Record<string, number>;
   playerFighterIds: readonly string[];
   news: readonly NewsItem[];
+  /** Остання опублікована таблиця: `<bodyId>/<weightClassId>` → топ-15. */
+  rankings: Record<string, readonly RankingEntry[]>;
+  /** День останньої публікації рейтингів. */
+  rankingsPublishedOn: number;
 }
 
 export type WorldEvent =
   | { t: 'DayAdvanced'; day: number }
   | {
       t: 'FightCompleted'; fightId: string; day: number; aId: string; bId: string;
-      method: FightMethod; winnerId: string | null; endingRound: number; tier: SimTier;
+      method: FightMethod; winnerId: string | null; endingRound: number;
+      scheduledRounds: number; tier: SimTier;
     }
   | { t: 'FighterRecordUpdated'; fighterId: string; day: number }
   | { t: 'FighterWearIncreased'; fighterId: string; rounds: number; headDelta: number }
   | { t: 'FighterInjured'; fighterId: string; daysOut: number }
-  | { t: 'NewsCreated'; key: string; params: Record<string, string | number> };
+  | { t: 'NewsCreated'; key: string; params: Record<string, string | number> }
+  | { t: 'RankingsPublished'; day: number; bodyId: string };
 
 export type WorldEventType = WorldEvent['t'];
 

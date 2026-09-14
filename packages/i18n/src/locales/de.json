@@ -141,5 +141,18 @@
   "ui.tier": "Stufe",
   "ui.fightsHeld": "ausgetragene Kämpfe",
   "ui.newsItems": "Meldungen",
-  "ui.injured": "verletzt"
+  "ui.injured": "verletzt",
+  "body.gbc": "Globaler Boxrat",
+  "body.uba": "Vereinigte Box-Allianz",
+  "body.ipb": "Internationaler Profiboxverband",
+  "body.sbf": "Oberste Boxföderation",
+  "character.traditional": "traditionell",
+  "character.activity": "aktivitätsorientiert",
+  "character.commercial": "kommerziell",
+  "character.strict": "streng",
+  "ui.rankings": "Ranglisten",
+  "ui.position": "Nr.",
+  "ui.body": "Verband",
+  "ui.score": "Punkte",
+  "ui.noRanking": "Noch keine Rangliste veröffentlicht"
 }

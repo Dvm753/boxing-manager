@@ -141,5 +141,18 @@
   "ui.tier": "Tier",
   "ui.fightsHeld": "fights held",
   "ui.newsItems": "news items",
-  "ui.injured": "injured"
+  "ui.injured": "injured",
+  "body.gbc": "Global Boxing Council",
+  "body.uba": "United Boxing Alliance",
+  "body.ipb": "International Pro Boxing",
+  "body.sbf": "Supreme Boxing Federation",
+  "character.traditional": "traditional",
+  "character.activity": "activity-driven",
+  "character.commercial": "commercial",
+  "character.strict": "strict",
+  "ui.rankings": "Rankings",
+  "ui.position": "#",
+  "ui.body": "Body",
+  "ui.score": "Score",
+  "ui.noRanking": "No rankings published yet"
 }

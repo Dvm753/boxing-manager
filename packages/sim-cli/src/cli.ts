@@ -8,7 +8,8 @@
  */
 import { runCalibration } from './calibrate.js';
 import { buildWorld, runSeason } from './season.js';
-import { formatIso } from '@bm/engine-world';
+import { formatIso, rankingKey } from '@bm/engine-world';
+import { SANCTIONING_BODIES, WEIGHT_CLASSES } from '@bm/data';
 
 const CORRIDORS: Record<string, readonly [number, number]> = {
   light: [40, 55], middle: [42, 58], heavy: [48, 65],
@@ -51,6 +52,17 @@ function season(days: number, fighters: number): number {
   console.log(`боїв проведено: ${fightsHeld}   за рівнями 1/2/3: ${byTier[1]}/${byTier[2]}/${byTier[3]}`);
   console.log(`травмованих зараз: ${Object.values(world.unavailableUntil).filter((d) => d > world.day).length}`);
   console.log(`час прогону: ${((Date.now() - began) / 1000).toFixed(1)} с`);
+  // Рейтинги: одна вагова категорія, усі чотири органи — щоб було видно різницю думок.
+  const sample = WEIGHT_CLASSES.find((w) => w.id === 'welterweight')?.id ?? 'middleweight';
+  console.log(`\nтоп-5, ${sample} — за версіями органів:`);
+  for (const body of SANCTIONING_BODIES) {
+    const table = world.rankings[rankingKey(body.id, sample)] ?? [];
+    const names = table.slice(0, 5)
+      .map((r, i) => `${i + 1}. ${world.fighters[r.fighterId]?.name ?? '—'}`)
+      .join('   ');
+    console.log(`  ${body.id.padEnd(4)} ${names || '(порожньо)'}`);
+  }
+
   console.log('\nостанні новини:');
   for (const item of world.news.slice(-5)) {
     console.log(`  ${formatIso(item.day)}  ${item.key}  ${JSON.stringify(item.params)}`);

@@ -4,6 +4,9 @@ import { dispatch } from './event-bus.js';
 import { HANDLERS } from './handlers.js';
 import { resolveFight } from './resolve-fight.js';
 import { buildTierIndex, fightTier } from './tiers.js';
+import { publishRankings } from './rankings.js';
+import { civilFromDays } from './calendar.js';
+import { SANCTIONING_BODIES } from '@bm/data';
 import type { PlayerCommand, World, WorldEvent } from './types.js';
 
 const GROUP_OF: Record<string, string> = Object.fromEntries(WEIGHT_CLASSES.map((w) => [w.id, w.group]));
@@ -62,8 +65,18 @@ export function advanceDay(
       method: resolved.method,
       winnerId: resolved.winner === null ? null : resolved.winner === 'a' ? fight.aId : fight.bId,
       endingRound: resolved.endingRound,
+      scheduledRounds: fight.scheduledRounds,
       tier: resolved.tier,
     });
+  }
+
+  // Рейтинги публікуються раз на місяць, першого числа (ADR-0018): так дешевше
+  // і так само працює реальний бокс.
+  if (civilFromDays(day).day === 1) {
+    current = { ...current, rankings: publishRankings(current), rankingsPublishedOn: day };
+    for (const body of SANCTIONING_BODIES) {
+      initial.push({ t: 'RankingsPublished', day, bodyId: body.id });
+    }
   }
 
   return dispatch(current, initial, HANDLERS);

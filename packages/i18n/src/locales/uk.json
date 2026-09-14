@@ -141,5 +141,18 @@
   "ui.tier": "Рівень",
   "ui.fightsHeld": "боїв проведено",
   "ui.newsItems": "новин",
-  "ui.injured": "травмованих"
+  "ui.injured": "травмованих",
+  "body.gbc": "Глобальна боксерська рада",
+  "body.uba": "Об'єднаний боксерський альянс",
+  "body.ipb": "Міжнародний професійний бокс",
+  "body.sbf": "Вища боксерська федерація",
+  "character.traditional": "традиційний",
+  "character.activity": "цінує активність",
+  "character.commercial": "комерційний",
+  "character.strict": "суворий",
+  "ui.rankings": "Рейтинги",
+  "ui.position": "№",
+  "ui.body": "Орган",
+  "ui.score": "Бал",
+  "ui.noRanking": "Рейтинг ще не опубліковано"
 }
