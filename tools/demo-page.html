@@ -108,7 +108,9 @@
   <h3>Що тут працює насправді</h3>
   <ul>
     <li class="yes">Детермінований PRNG (mulberry32) — <code>ADR-0003</code>. Один seed → той самий світ, завжди</li>
-    <li class="yes">43 атрибути за шкалою 1–20 — <code>ADR-0006</code>, з валідацією меж</li>
+    <li class="yes">47 атрибутів за шкалою 1–20 — <code>ADR-0006</code> і <code>ADR-0010</code></li>
+    <li class="yes">Стиль як шість осей, мітка похідна — <code>ADR-0011</code></li>
+    <li class="yes">Непрозорі UUID замість позиційних id — <code>ADR-0013</code></li>
     <li class="yes">Три виміри бійця: навички / форма / знос — <code>DOMAIN_MODEL.md</code></li>
     <li class="yes">Стеля зростання як діапазон, а не число</li>
     <li class="yes">Піраміда світу: новачків багато, елітних одиниці</li>
@@ -118,8 +120,7 @@
   <ul>
     <li class="no">Рушія бою. Бійці існують, але не б'ються — це наступний етап</li>
     <li class="no">Календаря, контрактів, рейтингів, промоутерів, грошей</li>
-    <li class="no">Осей стилю: стиль поки мітка зі зсувом атрибутів, а не політика поведінки</li>
-    <li class="no">Чотирьох нових атрибутів з огляду концепції — чекають на погодження</li>
+    <li class="no">Плану бою і вказівок кутка — контракт зафіксовано (ADR-0014), реалізація у фазі 1</li>
   </ul>
   <p style="color:var(--dim);font-size:13px;margin:0">
     Перевірте детермінізм самі: запам'ятайте першого бійця, змініть seed, поверніть назад — список буде той самий.
@@ -150,7 +151,7 @@
   function filtered(){
     var g = document.getElementById('grp').value, s = sty.value;
     return world.fighters.filter(function(f){
-      return (!g || f._wc.group === g) && (!s || f.style === s);
+      return (!g || f._wc.group === g) && (!s || BM.styleLabel(f.styleAxes) === s);
     });
   }
 
@@ -162,6 +163,7 @@
       if(key==='avg'){ va=a._avg; vb=b._avg; }
       else if(key==='wc'){ va=a._wc.limitKg||999; vb=b._wc.limitKg||999; }
       else if(key==='rec'){ va=a.record.wins; vb=b.record.wins; }
+      else if(key==='style'){ va=BM.styleLabel(a.styleAxes); vb=BM.styleLabel(b.styleAxes); }
       else { va=a[key]; vb=b[key]; }
       return va<vb ? -sortDir : va>vb ? sortDir : 0;
     });
@@ -184,7 +186,7 @@
       return '<tr data-id="'+f.id+'"'+(f.id===selId?' class="sel"':'')+'>'+
         '<td>'+esc(f.name)+'</td><td>'+f.countryCode+'</td>'+
         '<td class="num">'+f.age+'</td><td>'+esc(f._wc.nameUk)+'</td>'+
-        '<td>'+f.style+'</td>'+
+        '<td>'+BM.styleLabel(f.styleAxes)+'</td>'+
         '<td class="num">'+f.record.wins+'–'+f.record.losses+'–'+f.record.draws+' ('+f.record.knockouts+' KO)</td>'+
         '<td class="num">'+f._avg.toFixed(1)+'</td></tr>';
     }).join('');
@@ -192,6 +194,18 @@
   }
 
   function tile(n,l){ return '<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'; }
+
+  function axesBlock(f){
+    var labels = {preferredRange:'дистанція',pressure:'тиск',punchVolume:"об'єм",
+      risk:'ризик',counterTendency:'контратаки',bodyAttack:'по корпусу'};
+    return '<div class="attrgrp"><h3>Осі стилю → '+BM.styleLabel(f.styleAxes)+'</h3>'+
+      BM.STYLE_AXES.map(function(a){
+        var v=f.styleAxes[a];
+        return '<div class="attr"><span class="nm">'+labels[a]+'</span>'+
+          '<span class="bar"><i style="width:'+(v/20*100)+'%;background:#6c8cd5"></i></span>'+
+          '<span class="v">'+v+'</span></div>';
+      }).join('')+'</div>';
+  }
 
   function attrBlock(title, keys, f){
     return '<div class="attrgrp"><h3>'+title+'</h3>'+keys.map(function(k){
@@ -208,9 +222,10 @@
     c.innerHTML =
       '<h2>'+esc(f.name)+'</h2>'+
       '<div class="meta">'+f.age+' р. • '+f.countryCode+' • '+esc(f._wc.nameUk)+' • '+f.constants.stance+'<br>'+
-        f.constants.heightCm+' см, розмах '+f.constants.reachCm+' см • '+f.style+'<br>'+
+        f.constants.heightCm+' см, розмах '+f.constants.reachCm+' см • '+BM.styleLabel(f.styleAxes)+'<br>'+
         'Рекорд '+f.record.wins+'–'+f.record.losses+'–'+f.record.draws+' ('+f.record.knockouts+' KO)'+
       '</div>'+
+      axesBlock(f)+
       attrBlock('Технічні', BM.groups.technical, f)+
       attrBlock('Фізичні', BM.groups.physical, f)+
       attrBlock('Ментальні', BM.groups.mental, f)+

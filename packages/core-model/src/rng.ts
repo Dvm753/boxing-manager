@@ -14,6 +14,11 @@ export interface Rng {
   pick<T>(items: readonly T[]): T;
   /** Наближено нормальний розподіл: сума 3 рівномірних, обрізана в [min, max]. */
   normalInt(min: number, max: number): number;
+  /**
+   * Непрозорий ідентифікатор у формі UUID v4 (ADR-0013).
+   * `crypto.randomUUID()` заборонений: він недетермінований і зламав би ADR-0003.
+   */
+  uuid(): string;
 }
 
 /** mulberry32 — 32-бітний PRNG: компактний, швидкий, з однаковою поведінкою в Node і браузері. */
@@ -38,6 +43,17 @@ export function createRng(seed: number): Rng {
       const avg = (next() + next() + next()) / 3;
       const v = Math.round(min + avg * (max - min));
       return v < min ? min : v > max ? max : v;
+    },
+    uuid(): string {
+      const hex = '0123456789abcdef';
+      let out = '';
+      for (let i = 0; i < 36; i++) {
+        if (i === 8 || i === 13 || i === 18 || i === 23) { out += '-'; continue; }
+        if (i === 14) { out += '4'; continue; }                      // версія 4
+        if (i === 19) { out += hex[8 + int(0, 3)] as string; continue; } // варіант 8/9/a/b
+        out += hex[int(0, 15)] as string;
+      }
+      return out;
     },
   };
 }

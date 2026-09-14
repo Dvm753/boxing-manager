@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateAttributes } from '@bm/core-model';
+import { styleLabel, validateAttributes, validateAxes } from '@bm/core-model';
 import { generateWorld } from '../src/fighter-generator.js';
 import { WEIGHT_CLASSES } from '../src/weight-classes.js';
 
@@ -20,9 +20,33 @@ describe('генератор світу', () => {
     }
   });
 
-  it('ідентифікатори унікальні', () => {
+  it('ідентифікатори унікальні й у формі UUID v4 (ADR-0013)', () => {
     const { fighters } = generateWorld(11, 500);
     expect(new Set(fighters.map((f) => f.id)).size).toBe(fighters.length);
+    const uuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+    for (const f of fighters) expect(f.id).toMatch(uuidV4);
+  });
+
+  it('порядок id не збігається з порядком генерації — id не є позицією', () => {
+    // Якби id кодував індекс, сортування за id відтворило б порядок генерації.
+    const { fighters } = generateWorld(11, 200);
+    const generated = fighters.map((f) => f.id);
+    const byId = [...generated].sort();
+    expect(byId).not.toEqual(generated);
+  });
+
+  it('осі стилю валідні, мітка є похідною від них (ADR-0011)', () => {
+    for (const f of generateWorld(31, 300).fighters) {
+      expect(validateAxes(f.styleAxes)).toEqual([]);
+      const label = styleLabel(f.styleAxes);
+      expect(styleLabel(f.styleAxes)).toBe(label); // детермінована
+    }
+  });
+
+  it('осі справді різні між бійцями — світ не однорідний', () => {
+    const { fighters } = generateWorld(37, 400);
+    const labels = new Set(fighters.map((f) => styleLabel(f.styleAxes)));
+    expect(labels.size).toBeGreaterThanOrEqual(4);
   });
 
   it('піраміда світу: слабких більше, ніж сильних', () => {

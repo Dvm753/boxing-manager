@@ -1,14 +1,10 @@
 import {
-  ALL_ATTRIBUTES, type Attributes, type Fighter, type FightingStyle, type Rng,
-  type Stance, createRng, deriveSeed,
+  ALL_ATTRIBUTES, type Attributes, type Fighter, type Rng, type Stance, type StyleAxes,
+  createRng, deriveSeed,
 } from '@bm/core-model';
 import { generateName, listRegions } from './name-generator.js';
+import { generateStyleAxes } from './style-profiles.js';
 import { WEIGHT_CLASSES, weightClassById } from './weight-classes.js';
-
-const STYLES: readonly FightingStyle[] = [
-  'out-boxer', 'boxer-puncher', 'pressure-fighter', 'slugger',
-  'counter-puncher', 'switch-hitter', 'spoiler',
-];
 
 /**
  * Рівень бійця в піраміді світу. Визначає, навколо якого середнього крутяться атрибути.
@@ -44,22 +40,29 @@ function generateAttributes(rng: Rng, centre: number, spread: number): Attribute
 }
 
 /**
- * Зсуває атрибути під стиль, щоб стиль був видимий у числах, а не лише в мітці.
- * Це проміжне рішення: осі стилю (ALT_CONCEPT_REVIEW §3.4) ще не погоджені.
+ * Зсуває атрибути під **осі** стилю (ADR-0011), а не під мітку: боєць, який тисне,
+ * мусить мати чим тиснути. Мітка ніде не бере участі.
  */
-function applyStyleBias(attributes: Attributes, style: FightingStyle): void {
+function applyAxisBias(attributes: Attributes, axes: StyleAxes): void {
   const bump = (key: keyof Attributes, delta: number): void => {
-    attributes[key] = Math.max(1, Math.min(20, attributes[key] + delta));
+    attributes[key] = Math.max(1, Math.min(20, Math.round(attributes[key] + delta)));
   };
-  switch (style) {
-    case 'out-boxer': bump('jab', 3); bump('footwork', 3); bump('distanceControl', 2); bump('punchPower', -2); break;
-    case 'pressure-fighter': bump('aggression', 3); bump('stamina', 3); bump('insideFighting', 2); bump('distanceControl', -2); break;
-    case 'slugger': bump('punchPower', 4); bump('hook', 2); bump('footwork', -3); bump('defensiveDiscipline', -2); break;
-    case 'counter-puncher': bump('counterPunching', 4); bump('composure', 2); bump('headMovement', 2); bump('workRate', -2); break;
-    case 'boxer-puncher': bump('accuracy', 2); bump('combinations', 2); bump('punchPower', 1); break;
-    case 'switch-hitter': bump('adaptability', 3); bump('coordination', 2); break;
-    case 'spoiler': bump('clinching', 4); bump('dirtiness', 3); bump('accuracy', -2); break;
-  }
+  const off = (v: number): number => (v - 10) / 10; // -0.9 ... +1.0
+
+  bump('insideFighting', off(axes.preferredRange) * 3);
+  bump('distanceControl', -off(axes.preferredRange) * 3);
+  bump('footwork', -off(axes.preferredRange) * 2);
+  bump('aggression', off(axes.pressure) * 3);
+  bump('stamina', off(axes.pressure) * 2);
+  bump('workRate', off(axes.punchVolume) * 3);
+  bump('combinations', off(axes.punchVolume) * 2);
+  bump('punchPower', off(axes.risk) * 3);
+  bump('defensiveDiscipline', -off(axes.risk) * 3);
+  bump('counterPunching', off(axes.counterTendency) * 4);
+  bump('timing', off(axes.counterTendency) * 3);
+  bump('anticipation', off(axes.counterTendency) * 2);
+  bump('composure', off(axes.counterTendency) * 2);
+  bump('bodyPunching', off(axes.bodyAttack) * 4);
 }
 
 export interface GeneratedWorld {
@@ -78,9 +81,9 @@ export function generateWorld(seed: number, count: number): GeneratedWorld {
 
   for (let i = 0; i < count; i++) {
     const tier = pickTier(rng);
-    const style = rng.pick(STYLES);
+    const styleAxes = generateStyleAxes(rng);
     const attributes = generateAttributes(rng, tier.centre, tier.spread);
-    applyStyleBias(attributes, style);
+    applyAxisBias(attributes, styleAxes);
 
     const weightClass = rng.pick(WEIGHT_CLASSES);
     const region = rng.pick(regions);
@@ -103,7 +106,7 @@ export function generateWorld(seed: number, count: number): GeneratedWorld {
     const roundsBoxed = fightsHad * rng.int(3, 9);
 
     fighters.push({
-      id: `f-${(seed >>> 0).toString(36)}-${i.toString(36)}`,
+      id: rng.uuid(),
       name: generateName(rng, region),
       countryCode: region,
       age,
@@ -125,7 +128,7 @@ export function generateWorld(seed: number, count: number): GeneratedWorld {
         roundsBoxed,
       },
       record: { wins, losses, draws, knockouts: Math.round(wins * rng.next() * 0.7) },
-      style,
+      styleAxes,
       potentialRange: [potentialLow, Math.min(20, potentialLow + rng.int(1, 3))] as const,
     });
   }

@@ -1,10 +1,7 @@
 import type { Attributes } from './attributes.js';
+import type { StyleAxes } from './style.js';
 
 export type Stance = 'orthodox' | 'southpaw' | 'switch';
-
-export type FightingStyle =
-  | 'out-boxer' | 'boxer-puncher' | 'pressure-fighter' | 'slugger'
-  | 'counter-puncher' | 'switch-hitter' | 'spoiler';
 
 /** Незмінні фізичні дані. */
 export interface FighterConstants {
@@ -40,7 +37,7 @@ export interface FighterRecord {
 }
 
 export interface Fighter {
-  /** Незмінний ідентифікатор, не позиція в масиві. */
+  /** Непрозорий UUID v4 (ADR-0013). Ніколи не позиція в масиві і ніколи не перераховується. */
   id: string;
   name: string;
   countryCode: string;
@@ -50,7 +47,8 @@ export interface Fighter {
   condition: FighterCondition;
   wear: FighterWear;
   record: FighterRecord;
-  style: FightingStyle;
+  /** Шість осей (ADR-0011). Джерело правди; мітка обчислюється з них через `styleLabel`. */
+  styleAxes: StyleAxes;
   /**
    * Стеля зростання — діапазон, а не число (DOMAIN_MODEL.md).
    * Одне число рано чи пізно витікає до гравця і перетворює скаутинг на пошук цифри.

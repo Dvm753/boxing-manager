@@ -30,8 +30,15 @@ describe('атрибути: шкала 1–20 (ADR-0006)', () => {
     expect(normalize(20)).toBe(1);
   });
 
-  it('усі 43 атрибути унікальні', () => {
+  it('усі 47 атрибутів унікальні (43 + чотири з ADR-0010)', () => {
     expect(new Set(ALL_ATTRIBUTES).size).toBe(ALL_ATTRIBUTES.length);
-    expect(ALL_ATTRIBUTES.length).toBe(43);
+    expect(ALL_ATTRIBUTES.length).toBe(47);
+  });
+
+  it('чотири атрибути ADR-0010 присутні у своїх групах', () => {
+    expect(ALL_ATTRIBUTES).toContain('bodyResistance');
+    expect(ALL_ATTRIBUTES).toContain('timing');
+    expect(ALL_ATTRIBUTES).toContain('anticipation');
+    expect(ALL_ATTRIBUTES).toContain('ringEscape');
   });
 });

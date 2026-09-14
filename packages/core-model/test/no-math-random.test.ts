@@ -24,16 +24,23 @@ function stripComments(text: string): string {
   return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 }
 
+/** Усі три недетерміновані — ADR-0003 забороняє їх у рушіях. */
+const FORBIDDEN: readonly [RegExp, string][] = [
+  [/Math\s*\.\s*random\s*\(/, 'Math.random()'],
+  [/crypto\s*\.\s*randomUUID\s*\(/, 'crypto.randomUUID()'],
+  [/Date\s*\.\s*now\s*\(/, 'Date.now()'],
+  [/new\s+Date\s*\(/, 'new Date()'],
+];
+
 describe('чистота рушіїв', () => {
-  it('жоден охоронюваний пакет не викликає Math.random()', () => {
+  it.each(FORBIDDEN)('жоден охоронюваний пакет не викликає %s', (pattern, label) => {
     const offenders: string[] = [];
     for (const pkg of GUARDED) {
       const dir = join(process.cwd(), 'packages', pkg, 'src');
       let files: string[];
       try { files = sourceFiles(dir); } catch { continue; }
       for (const file of files) {
-        const code = stripComments(readFileSync(file, 'utf8'));
-        if (/Math\s*\.\s*random\s*\(/.test(code)) offenders.push(file);
+        if (pattern.test(stripComments(readFileSync(file, 'utf8')))) offenders.push(`${file} (${label})`);
       }
     }
     expect(offenders).toEqual([]);

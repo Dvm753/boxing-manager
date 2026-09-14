@@ -11,8 +11,8 @@ export type AttributeValue = number;
 
 export const TECHNICAL_ATTRIBUTES = [
   'jab', 'cross', 'hook', 'uppercut', 'bodyPunching', 'combinations', 'counterPunching',
-  'accuracy', 'feinting', 'insideFighting', 'clinching', 'blocking', 'headMovement',
-  'footwork', 'distanceControl', 'defensiveDiscipline',
+  'accuracy', 'timing', 'feinting', 'insideFighting', 'clinching', 'blocking', 'headMovement',
+  'footwork', 'distanceControl', 'ringEscape', 'defensiveDiscipline',
 ] as const;
 
 export const PHYSICAL_ATTRIBUTES = [
@@ -20,14 +20,14 @@ export const PHYSICAL_ATTRIBUTES = [
 ] as const;
 
 export const MENTAL_ATTRIBUTES = [
-  'ringIq', 'composure', 'aggression', 'bravery', 'adaptability', 'concentration',
+  'ringIq', 'anticipation', 'composure', 'aggression', 'bravery', 'adaptability', 'concentration',
   'killerInstinct', 'workRate', 'discipline',
 ] as const;
 
 /** Гравцю не показуються ніколи (DOMAIN_MODEL.md). */
 export const HIDDEN_ATTRIBUTES = [
-  'chin', 'heart', 'cutResistance', 'injuryProneness', 'consistency', 'professionalism',
-  'ambition', 'bigFightTemperament', 'weightDiscipline', 'dirtiness',
+  'chin', 'bodyResistance', 'heart', 'cutResistance', 'injuryProneness', 'consistency',
+  'professionalism', 'ambition', 'bigFightTemperament', 'weightDiscipline', 'dirtiness',
 ] as const;
 
 export type TechnicalAttribute = (typeof TECHNICAL_ATTRIBUTES)[number];
