@@ -18,6 +18,7 @@
 | `docs/WORLD_ENGINE_SPEC.md` | Специфікація світу (чернетка) |
 | `docs/MODULE_CONTRACTS.md` | Інтерфейси між модулями |
 | `docs/analysis/FM_ANALYSIS.md` | Аналіз Football Manager — джерело рішень |
+| `docs/analysis/ALT_CONCEPT_REVIEW.md` | Огляд альтернативної концепції і що з неї взяти |
 | `docs/research/OPEN_QUESTIONS.md` | Невирішені питання |
 | `adr/` | Журнал архітектурних рішень |
 | `governance/` | Контроль змін, звірка стану, журнал дій |
