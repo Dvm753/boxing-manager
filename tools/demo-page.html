@@ -1,245 +1,318 @@
 <!doctype html>
-<html lang="uk">
+<html lang="uk" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Boxing Manager — демо __STAGE__</title>
 <style>
-  :root{
-    --bg:#12131a; --panel:#1a1c26; --panel2:#21242f; --line:#2e3240;
-    --ink:#e8eaf0; --dim:#9aa0b4; --accent:#e0574a; --ok:#4fbf87; --warn:#e3b341;
-    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  :root[data-theme="dark"]{
+    --bg:#0f1117; --panel:#171a22; --panel2:#1e222c; --line:#2b3040; --sidebar:#13161e;
+    --ink:#e9ebf2; --dim:#949aad; --accent:#e0574a; --accent2:#6c8cd5; --ok:#4fbf87;
+  }
+  :root[data-theme="light"]{
+    --bg:#f4f5f8; --panel:#ffffff; --panel2:#eef0f5; --line:#d8dce6; --sidebar:#e9ecf3;
+    --ink:#1a1d26; --dim:#5f6678; --accent:#c8412f; --accent2:#3a5ea8; --ok:#1f8a5b;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
-    font:15px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding:0 16px 56px}
-  .wrap{max-width:1180px;margin:0 auto}
-  header{padding-block:28px 20px;border-bottom:1px solid var(--line);margin-bottom:22px}
-  h1{margin:0 0 6px;font-size:23px;letter-spacing:-.2px}
-  .sub{color:var(--dim);font-size:13.5px}
-  .badge{display:inline-block;background:var(--panel2);border:1px solid var(--line);
-    border-radius:999px;padding:2px 10px;font-size:12px;font-family:var(--mono);color:var(--dim);margin-right:6px}
-  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:18px}
+    font:14.5px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+  .mono{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace}
+
+  .app{display:grid;grid-template-columns:186px 1fr;min-height:100vh}
+  @media (max-width:820px){ .app{grid-template-columns:1fr} .side{position:static;height:auto} }
+
+  .side{background:var(--sidebar);border-right:1px solid var(--line);padding:14px 10px;
+    position:sticky;top:0;height:100vh;overflow:auto}
+  .brand{font-weight:700;font-size:15px;padding:0 8px 12px;letter-spacing:-.2px}
+  .brand small{display:block;font-weight:400;font-size:11.5px;color:var(--dim);margin-top:2px}
+  .navbtn{display:block;width:100%;text-align:left;background:none;border:0;color:var(--dim);
+    padding:8px 10px;border-radius:7px;font:inherit;font-size:14px;cursor:pointer;margin-bottom:2px}
+  .navbtn:hover{background:var(--panel2);color:var(--ink)}
+  .navbtn[aria-current="true"]{background:var(--accent);color:#fff;font-weight:600}
+
+  .main{padding:16px 18px 56px;min-width:0}
+  .bar{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:16px}
+  .bar .kv{font-size:12.5px;color:var(--dim)}
+  .bar .kv b{color:var(--ink);font-weight:600}
+  .grow{flex:1}
+
+  h1{margin:0 0 14px;font-size:19px;letter-spacing:-.2px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
   .field{display:flex;flex-direction:column;gap:4px}
-  label{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
-  input,select{background:var(--panel);color:var(--ink);border:1px solid var(--line);
-    border-radius:7px;padding:8px 10px;font:inherit;font-size:14px;min-width:130px}
-  input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}
-  button{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:9px 16px;
+  label{font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+  input,select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    border-radius:7px;padding:7px 9px;font:inherit;font-size:14px;min-width:120px}
+  button.act{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:8px 15px;
     font:inherit;font-weight:600;cursor:pointer}
-  button:hover{filter:brightness(1.1)}
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:22px}
-  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
-  .stat .n{font-size:22px;font-weight:650;font-family:var(--mono)}
-  .stat .l{font-size:12px;color:var(--dim);margin-top:2px}
-  .layout{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
-  @media (max-width:900px){.layout{grid-template-columns:1fr}}
-  .tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:600px}
+  button.act:disabled{opacity:.55;cursor:default}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .stat .n{font-size:21px;font-weight:650;font-family:ui-monospace,monospace}
+  .stat .l{font-size:11.5px;color:var(--dim);margin-top:2px}
+
+  .tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:64vh}
   table{border-collapse:collapse;width:100%;font-size:13.5px}
   th{position:sticky;top:0;background:var(--panel2);text-align:left;padding:9px 11px;
     font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);
     border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap}
   th:hover{color:var(--ink)}
-  td{padding:8px 11px;border-bottom:1px solid #23262f;white-space:nowrap}
-  tr{cursor:pointer}
-  tr:hover td{background:#232735}
-  tr.sel td{background:#2b2030}
-  .num{font-family:var(--mono);text-align:right}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;position:sticky;top:16px}
-  .card h2{margin:0 0 2px;font-size:18px}
-  .card .meta{color:var(--dim);font-size:13px;margin-bottom:14px}
-  .attrgrp{margin-bottom:13px}
+  td{padding:7px 11px;border-bottom:1px solid var(--line);white-space:nowrap}
+  tbody tr{cursor:pointer}
+  tbody tr:hover td{background:var(--panel2)}
+  tbody tr.sel td{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+  .num{font-family:ui-monospace,monospace;text-align:right}
+
+  .split{display:grid;grid-template-columns:1fr 330px;gap:14px;align-items:start}
+  @media (max-width:1100px){ .split{grid-template-columns:1fr} }
+
+  .attrgrp{margin-bottom:12px}
   .attrgrp h3{margin:0 0 6px;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim)}
   .attr{display:flex;align-items:center;gap:8px;margin-bottom:3px;font-size:13px}
-  .attr .nm{flex:1;color:#c3c8d6;overflow:hidden;text-overflow:ellipsis}
-  .bar{width:74px;height:6px;background:#2c303c;border-radius:3px;overflow:hidden;flex:none}
-  .bar i{display:block;height:100%;background:var(--accent)}
-  .attr .v{font-family:var(--mono);width:20px;text-align:right;flex:none}
-  .hidden-note{background:var(--panel2);border-left:2px solid var(--warn);padding:8px 10px;
-    font-size:12.5px;color:var(--dim);border-radius:0 6px 6px 0;margin-top:12px}
-  .scope{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:22px}
-  .scope h3{margin:0 0 8px;font-size:14px}
-  .scope ul{margin:0 0 12px;padding-left:20px;color:var(--dim);font-size:13.5px}
-  .scope li{margin-bottom:3px}
+  .attr .nm{flex:1;overflow:hidden;text-overflow:ellipsis}
+  .bar2{width:72px;height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;flex:none}
+  .bar2 i{display:block;height:100%;background:var(--accent)}
+  .bar2.ax i{background:var(--accent2)}
+  .attr .v{font-family:ui-monospace,monospace;width:20px;text-align:right;flex:none}
+  .note{background:var(--panel2);border-left:2px solid var(--accent2);padding:8px 10px;
+    font-size:12.5px;color:var(--dim);border-radius:0 6px 6px 0;margin-top:10px}
+  .meta{color:var(--dim);font-size:13px}
+  .newsrow{padding:5px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .rankgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+  ul.scope{margin:0;padding-left:20px;color:var(--dim);font-size:13.5px}
+  ul.scope li{margin-bottom:3px}
   .yes::marker{color:var(--ok)} .no::marker{color:var(--accent)}
-  code{font-family:var(--mono);background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:12.5px}
+  code{font-family:ui-monospace,monospace;background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:12.5px}
 </style>
 </head>
 <body>
-<div class="wrap">
-<header>
-  <h1>Boxing Manager — демонстраційна збірка</h1>
-  <div class="sub">
-    <span class="badge">етап __STAGE__</span>
-    <span class="badge">__DATE__</span>
-    <span class="badge">__COMMIT__</span>
-    Світ генерується у вашому браузері тим самим кодом, що й у тестах.
-  </div>
-</header>
+<div class="app">
+  <nav class="side">
+    <div class="brand">Boxing Manager<small>__STAGE__ · __DATE__ · __COMMIT__</small></div>
+    <button class="navbtn" data-sec="world"     data-i18n="nav.world">Світ</button>
+    <button class="navbtn" data-sec="fighters"  data-i18n="nav.fighters">Бійці</button>
+    <button class="navbtn" data-sec="fight"     data-i18n="nav.fight">Бій</button>
+    <button class="navbtn" data-sec="rankings"  data-i18n="nav.rankings">Рейтинги</button>
+    <button class="navbtn" data-sec="settings"  data-i18n="nav.settings">Налаштування</button>
+  </nav>
 
-<div class="controls">
-  <div class="field"><label for="seed" data-i18n="ui.seed">Seed</label><input id="seed" type="number" value="2026"></div>
-  <div class="field"><label for="count" data-i18n="ui.fighters">Бійців</label><input id="count" type="number" value="500" min="10" max="5000"></div>
-  <div class="field"><label for="grp" data-i18n="ui.weightGroup">Вагова група</label>
-    <select id="grp"><option value="">усі</option><option value="light">легка</option>
-    <option value="middle">середня</option><option value="heavy">важка</option></select></div>
-  <div class="field"><label for="sty" data-i18n="ui.style">Стиль</label><select id="sty"><option value="">усі</option></select></div>
-  <div class="field"><label for="loc" data-i18n="ui.language">Мова</label><select id="loc"></select></div>
-  <button id="go" data-i18n="ui.generate">Згенерувати</button>
-</div>
+  <main class="main">
+    <div class="bar">
+      <span class="kv" id="barDate"></span>
+      <span class="kv" id="barCount"></span>
+      <span class="grow"></span>
+      <button class="act" id="runseason" data-i18n="ui.simulate">Симулювати сезон</button>
+    </div>
 
-<div class="stats" id="stats"></div>
+    <section id="sec-world">
+      <h1 data-i18n="nav.world">Світ</h1>
+      <div class="panel">
+        <div class="row">
+          <div class="field"><label for="seed" data-i18n="ui.seed">Seed</label><input id="seed" type="number" value="2026"></div>
+          <div class="field"><label for="count" data-i18n="ui.fighters">Бійців</label><input id="count" type="number" value="600" min="50" max="6000"></div>
+          <button class="act" id="go" data-i18n="ui.generate">Згенерувати</button>
+        </div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="panel">
+        <h3 style="margin:0 0 8px;font-size:13px" data-i18n="ui.news">Новини світу</h3>
+        <div id="newsout"><div class="meta" data-i18n="ui.noRanking">—</div></div>
+      </div>
+    </section>
 
-<div class="layout">
-  <div class="tablewrap">
-    <table id="tbl">
-      <thead><tr>
-        <th data-k="name" data-i18n="ui.fighter">Боєць</th><th data-k="countryCode" data-i18n="ui.country">Країна</th>
-        <th data-k="age" class="num" data-i18n="ui.age">Вік</th><th data-k="wc" data-i18n="ui.weight">Вага</th>
-        <th data-k="style" data-i18n="ui.style">Стиль</th><th data-k="rec" data-i18n="ui.record">Рекорд</th>
-        <th data-k="avg" class="num" data-i18n="ui.avgShort">Сер.</th>
-      </tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <div class="card" id="card"><div class="meta" data-i18n="ui.selectFighter">Оберіть бійця зі списку.</div></div>
-</div>
+    <section id="sec-fighters" hidden>
+      <h1 data-i18n="nav.fighters">Бійці</h1>
+      <div class="panel">
+        <div class="row">
+          <div class="field"><label for="grp" data-i18n="ui.weightGroup">Вагова група</label><select id="grp"></select></div>
+          <div class="field"><label for="sty" data-i18n="ui.style">Стиль</label><select id="sty"></select></div>
+        </div>
+      </div>
+      <div class="split">
+        <div class="tablewrap">
+          <table id="tbl">
+            <thead><tr>
+              <th data-k="name" data-i18n="ui.fighter">Боєць</th>
+              <th data-k="countryCode" data-i18n="ui.country">Країна</th>
+              <th data-k="age" class="num" data-i18n="ui.age">Вік</th>
+              <th data-k="wc" data-i18n="ui.weight">Вага</th>
+              <th data-k="style" data-i18n="ui.style">Стиль</th>
+              <th data-k="rec" data-i18n="ui.record">Рекорд</th>
+              <th data-k="avg" class="num" data-i18n="ui.avgShort">Сер.</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="panel" id="card"><div class="meta" data-i18n="ui.selectFighter">Оберіть бійця зі списку.</div></div>
+      </div>
+    </section>
 
-<div class="card" id="fightpanel" style="margin-top:18px;display:none"></div>
+    <section id="sec-fight" hidden>
+      <h1 data-i18n="nav.fight">Бій</h1>
+      <div class="panel" id="fightpanel"><div class="meta" data-i18n="ui.selectBoth">Оберіть обох бійців.</div></div>
+    </section>
 
-<div class="scope" id="seasonpanel">
-  <h3 data-i18n="ui.news">Новини світу</h3>
-  <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
-    <button id="runseason" data-i18n="ui.simulate">Симулювати сезон</button>
-    <span class="meta" id="seasonmeta" style="color:var(--dim);font-size:13px"></span>
-  </div>
-  <div id="seasonout"></div>
-</div>
+    <section id="sec-rankings" hidden>
+      <h1 data-i18n="nav.rankings">Рейтинги</h1>
+      <div class="panel"><div class="rankgrid" id="rankout"><div class="meta" data-i18n="ui.noRanking">—</div></div></div>
+    </section>
 
-<div class="scope" id="rankpanel" style="display:none">
-  <h3 data-i18n="ui.rankings">Рейтинги</h3>
-  <div id="rankout" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px"></div>
-</div>
-
-<div class="scope">
-  <h3>Що тут працює насправді</h3>
-  <ul>
-    <li class="yes">Детермінований PRNG (mulberry32) — <code>ADR-0003</code>. Один seed → той самий світ, завжди</li>
-    <li class="yes">47 атрибутів за шкалою 1–20 — <code>ADR-0006</code> і <code>ADR-0010</code></li>
-    <li class="yes">Стиль як шість осей, мітка похідна — <code>ADR-0011</code></li>
-    <li class="yes">Непрозорі UUID замість позиційних id — <code>ADR-0013</code></li>
-    <li class="yes">Три виміри бійця: навички / форма / знос — <code>DOMAIN_MODEL.md</code></li>
-    <li class="yes">Стеля зростання як діапазон, а не число</li>
-    <li class="yes">Піраміда світу: новачків багато, елітних одиниці</li>
-    <li class="yes">17 вагових категорій, імена зі складів (жодного реального імені — <code>ADR-0005</code>)</li>
-  </ul>
-  <h3>Чого ще немає</h3>
-  <ul>
-    <li class="yes">Рушій бою: обміни, позиції, градації влучання, нокдаути, суддівство — <code>ADR-0003</code>, <code>ADR-0012</code></li>
-    <li class="yes">Гейт фази 0 пройдено: M1, M3, M4 у коридорах <code>ADR-0008</code> на 2500 боях × 3 групи</li>
-    <li class="yes">Календар і тік дня на подіях домену — <code>ADR-0016</code>; чистий календар без <code>Date</code></li>
-    <li class="yes">Три рівні деталізації світу — <code>ADR-0015</code>, з доведеною еквівалентністю агрегатів</li>
-    <li class="yes">Шість мов, перемикається на льоту — <code>ADR-0017</code></li>
-    <li class="yes">Рейтинги чотирьох санкційних органів — <code>ADR-0018</code>; похідна від історії, публікація щомісяця</li>
-    <li class="no">Титулів, обов'язкових захистів, контрактів, промоутерів, грошей — фаза 2</li>
-    <li class="no">Розподілу раунду зупинки і нокдаунів у гейті — винесено у фазу 1 (<code>ADR-0009</code>)</li>
-    <li class="no">Плану бою і вказівок кутка — контракт зафіксовано (ADR-0014), реалізація у фазі 1</li>
-  </ul>
-  <p style="color:var(--dim);font-size:13px;margin:0">
-    Оберіть бійця → «Обрати як A», потім іншого → «Обрати як B». Бій прорахується тим самим рушієм, що проходить golden-тести.
-  </p>
-</div>
+    <section id="sec-settings" hidden>
+      <h1 data-i18n="nav.settings">Налаштування</h1>
+      <div class="panel">
+        <div class="row">
+          <div class="field"><label for="loc" data-i18n="ui.language">Мова</label><select id="loc"></select></div>
+          <div class="field"><label for="theme" data-i18n="ui.theme">Тема</label><select id="theme"></select></div>
+          <div class="field"><label for="units" data-i18n="ui.units">Одиниці</label><select id="units"></select></div>
+          <div class="field"><label for="curr" data-i18n="ui.currency">Валюта</label><select id="curr"></select></div>
+        </div>
+        <div class="note" id="settingsPreview"></div>
+      </div>
+      <div class="panel">
+        <h3 style="margin:0 0 8px;font-size:13px">Що працює насправді</h3>
+        <ul class="scope">
+          <li class="yes">Детермінований PRNG — <code>ADR-0003</code>: один seed → той самий світ</li>
+          <li class="yes">47 атрибутів 1–20, стиль як шість осей — <code>ADR-0006</code>, <code>ADR-0010</code>, <code>ADR-0011</code></li>
+          <li class="yes">Рушій бою; гейт фази 0 зелений — <code>ADR-0008</code>, <code>ADR-0009</code></li>
+          <li class="yes">Календар і тік дня на подіях, три рівні деталізації — <code>ADR-0015</code>, <code>ADR-0016</code></li>
+          <li class="yes">Рейтинги чотирьох органів — <code>ADR-0018</code></li>
+          <li class="yes">Шість мов, одиниці, валюта, тема — <code>ADR-0017</code>, <code>ADR-0019</code></li>
+          <li class="no">Титулів, контрактів, промоутерів, грошей — фаза 2</li>
+          <li class="no">Табору, тренувань, збережень — фаза 1–2</li>
+          <li class="no">Це не гра, а інструмент спостереження за симуляцією</li>
+        </ul>
+      </div>
+    </section>
+  </main>
 </div>
 
 <script>__BUNDLE__</script>
 <script>
 (function(){
-  var BM = window.BM, world = null, sorted = [], sortKey = 'avg', sortDir = -1, selId = null;
-  var loc = 'uk', T = BM.createTranslator(loc);
-  function t(k, p){ return T.t(k, p); }
+  var BM = window.BM;
+  var S = { locale:'uk', units:'metric', currency:'USD', theme:'dark' };
+  var T = BM.createTranslator(S.locale);
+  var t = function(k,p){ return T.t(k,p); };
+  var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
 
-  var locSel = document.getElementById('loc');
-  BM.LOCALES.forEach(function(code){
-    var o = document.createElement('option');
-    o.value = code; o.textContent = BM.LOCALE_NAMES[code];
-    locSel.appendChild(o);
-  });
-  locSel.value = loc;
-  locSel.addEventListener('change', function(){
-    loc = locSel.value; T = BM.createTranslator(loc); applyStatic(); render(); renderFight(); renderSeason(); renderRankings();
+  var STYLES = ['out-boxer','boxer-puncher','pressure-fighter','slugger','counter-puncher','switch-hitter','spoiler'];
+  var WC = {}; BM.WEIGHT_CLASSES.forEach(function(w){ WC[w.id] = w; });
+
+  var world=null, rows=[], sortKey='avg', sortDir=-1, selId=null, slotA=null, slotB=null, season=null;
+
+  // ── навігація ───────────────────────────────────────────────────────────
+  var section = 'world';
+  function show(name){
+    section = name;
+    ['world','fighters','fight','rankings','settings'].forEach(function(s){
+      document.getElementById('sec-'+s).hidden = (s !== name);
+    });
+    document.querySelectorAll('.navbtn').forEach(function(b){
+      b.setAttribute('aria-current', String(b.getAttribute('data-sec') === name));
+    });
+  }
+  document.querySelectorAll('.navbtn').forEach(function(b){
+    b.addEventListener('click', function(){ show(b.getAttribute('data-sec')); });
   });
 
-  function applyStatic(){
+  // ── налаштування ────────────────────────────────────────────────────────
+  function fill(el, values, label){
+    var keep = el.value; el.innerHTML='';
+    values.forEach(function(v){
+      var o=document.createElement('option'); o.value=v; o.textContent=label(v); el.appendChild(o);
+    });
+    if(values.indexOf(keep) >= 0) el.value = keep;
+  }
+  var locSel=document.getElementById('loc'), themeSel=document.getElementById('theme'),
+      unitSel=document.getElementById('units'), currSel=document.getElementById('curr');
+
+  function applySettings(){
+    T = BM.createTranslator(S.locale);
+    document.documentElement.lang = S.locale;
+    var theme = S.theme === 'system'
+      ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+      : S.theme;
+    document.documentElement.setAttribute('data-theme', theme);
+
     document.querySelectorAll('[data-i18n]').forEach(function(el){
       el.textContent = t(el.getAttribute('data-i18n'));
     });
-    document.documentElement.lang = loc;
-    fillSelect(document.getElementById('grp'), ['','light','middle','heavy'], function(v){
-      return v ? t('group.'+v) : t('ui.all');
-    });
-    fillSelect(sty, [''].concat(STYLES), function(v){ return v ? t('style.'+v) : t('ui.all'); });
-  }
+    fill(locSel, BM.LOCALES, function(v){ return BM.LOCALE_NAMES[v]; });
+    fill(themeSel, BM.THEMES, function(v){ return t('theme.'+v); });
+    fill(unitSel, BM.UNIT_SYSTEMS, function(v){ return t('units.'+v); });
+    fill(currSel, BM.CURRENCIES.map(function(c){return c.id;}), function(v){ return v; });
+    locSel.value=S.locale; themeSel.value=S.theme; unitSel.value=S.units; currSel.value=S.currency;
+    fill(document.getElementById('grp'), ['','light','middle','heavy'],
+      function(v){ return v ? t('group.'+v) : t('ui.all'); });
+    fill(document.getElementById('sty'), [''].concat(STYLES),
+      function(v){ return v ? t('style.'+v) : t('ui.all'); });
 
-  function fillSelect(el, values, label){
-    var keep = el.value;
-    el.innerHTML = '';
-    values.forEach(function(v){
-      var o = document.createElement('option');
-      o.value = v; o.textContent = label(v);
-      el.appendChild(o);
-    });
-    el.value = keep;
-  }
-  var WC = {}; BM.WEIGHT_CLASSES.forEach(function(w){ WC[w.id] = w; });
-  var STYLES = ['out-boxer','boxer-puncher','pressure-fighter','slugger','counter-puncher','switch-hitter','spoiler'];
-  var sty = document.getElementById('sty');
+    document.getElementById('settingsPreview').innerHTML =
+      t('ui.height')+': '+BM.formatLength(178, S, t('unit.cm'))+'  ·  '+
+      t('ui.weight')+': '+BM.formatWeight(66.68, S, t('unit.kg'), t('unit.lb'))+'  ·  '+
+      t('ui.purse')+': '+BM.formatMoney(420000, S);
 
-  function avg(f){ var v=Object.values(f.attributes); return v.reduce(function(a,b){return a+b;},0)/v.length; }
-  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+    renderAll();
+  }
+  locSel.addEventListener('change', function(){ S.locale=locSel.value; applySettings(); });
+  themeSel.addEventListener('change', function(){ S.theme=themeSel.value; applySettings(); });
+  unitSel.addEventListener('change', function(){ S.units=unitSel.value; applySettings(); });
+  currSel.addEventListener('change', function(){ S.currency=currSel.value; applySettings(); });
+
+  // ── світ ────────────────────────────────────────────────────────────────
+  function avg(f){ var v=Object.values(f.attributes); var s=0; for(var i=0;i<v.length;i++) s+=v[i]; return s/v.length; }
 
   function build(){
-    var seed = parseInt(document.getElementById('seed').value,10) || 0;
-    var count = Math.max(10, Math.min(5000, parseInt(document.getElementById('count').value,10)||500));
+    var seed = parseInt(document.getElementById('seed').value,10)||0;
+    var count = Math.max(50, Math.min(6000, parseInt(document.getElementById('count').value,10)||600));
     world = BM.generateWorld(seed, count);
-    world.fighters.forEach(function(f){ f._avg = avg(f); f._wc = WC[f.constants.naturalWeightClassId]; });
-    selId = null; render();
+    world.fighters.forEach(function(f){ f._avg=avg(f); f._wc=WC[f.constants.naturalWeightClassId]; });
+    selId=null; slotA=null; slotB=null; season=null;
+    renderAll();
   }
+  document.getElementById('go').addEventListener('click', build);
 
   function filtered(){
-    var g = document.getElementById('grp').value, s = sty.value;
+    var g=document.getElementById('grp').value, s=document.getElementById('sty').value;
     return world.fighters.filter(function(f){
-      return (!g || f._wc.group === g) && (!s || BM.styleLabel(f.styleAxes) === s);
+      return (!g || f._wc.group===g) && (!s || BM.styleLabel(f.styleAxes)===s);
     });
   }
 
-  function render(){
-    var rows = filtered();
-    var key = sortKey;
-    rows = rows.slice().sort(function(a,b){
-      var va, vb;
-      if(key==='avg'){ va=a._avg; vb=b._avg; }
-      else if(key==='wc'){ va=a._wc.limitKg||999; vb=b._wc.limitKg||999; }
-      else if(key==='rec'){ va=a.record.wins; vb=b.record.wins; }
-      else if(key==='style'){ va=BM.styleLabel(a.styleAxes); vb=BM.styleLabel(b.styleAxes); }
-      else { va=a[key]; vb=b[key]; }
+  function renderAll(){ renderBar(); renderTable(); renderCard(); renderFight(); renderNews(); renderRankings(); }
+
+  function renderBar(){
+    document.getElementById('barDate').innerHTML =
+      season ? '<b>'+season.date+'</b>' : '<span class="meta">'+t('ui.day')+' —</span>';
+    document.getElementById('barCount').innerHTML = world
+      ? world.fighters.length+' '+t('ui.fighters').toLowerCase() : '';
+  }
+
+  function renderTable(){
+    if(!world) return;
+    var list = filtered().slice().sort(function(a,b){
+      var va,vb;
+      if(sortKey==='avg'){va=a._avg;vb=b._avg;}
+      else if(sortKey==='wc'){va=a._wc.limitKg||999;vb=b._wc.limitKg||999;}
+      else if(sortKey==='rec'){va=a.record.wins;vb=b.record.wins;}
+      else if(sortKey==='style'){va=BM.styleLabel(a.styleAxes);vb=BM.styleLabel(b.styleAxes);}
+      else {va=a[sortKey];vb=b[sortKey];}
       return va<vb ? -sortDir : va>vb ? sortDir : 0;
     });
-    sorted = rows;
+    rows = list;
+    var elite=list.filter(function(f){return f._avg>=15;}).length;
+    var rookie=list.filter(function(f){return f._avg<=10;}).length;
+    var ages=list.map(function(f){return f.age;});
+    var south=list.filter(function(f){return f.constants.stance==='southpaw';}).length;
+    document.getElementById('stats').innerHTML =
+      tile(list.length,t('ui.inSample'))+tile(elite,t('ui.avgAttrHigh'))+tile(rookie,t('ui.avgAttrLow'))+
+      tile(ages.length?(ages.reduce(function(a,b){return a+b;},0)/ages.length).toFixed(1):'—',t('ui.avgAge'))+
+      tile(list.length?Math.round(south/list.length*100)+'%':'—',t('ui.southpaws'));
 
-    var st = document.getElementById('stats');
-    var elite = rows.filter(function(f){return f._avg>=15;}).length;
-    var rookie = rows.filter(function(f){return f._avg<=10;}).length;
-    var ages = rows.map(function(f){return f.age;});
-    var south = rows.filter(function(f){return f.constants.stance==='southpaw';}).length;
-    st.innerHTML =
-      tile(rows.length, t('ui.inSample')) +
-      tile(elite, t('ui.avgAttrHigh')) +
-      tile(rookie, t('ui.avgAttrLow')) +
-      tile(ages.length? (ages.reduce(function(a,b){return a+b;},0)/ages.length).toFixed(1):'—', t('ui.avgAge')) +
-      tile(rows.length? Math.round(south/rows.length*100)+'%':'—', t('ui.southpaws'));
-
-    var tb = document.querySelector('#tbl tbody');
-    tb.innerHTML = rows.slice(0,400).map(function(f){
+    document.querySelector('#tbl tbody').innerHTML = list.slice(0,400).map(function(f){
       return '<tr data-id="'+f.id+'"'+(f.id===selId?' class="sel"':'')+'>'+
         '<td>'+esc(f.name)+'</td><td>'+f.countryCode+'</td>'+
         '<td class="num">'+f.age+'</td><td>'+esc(t('weightClass.'+f._wc.id))+'</td>'+
@@ -247,167 +320,155 @@
         '<td class="num">'+f.record.wins+'–'+f.record.losses+'–'+f.record.draws+' ('+f.record.knockouts+' KO)</td>'+
         '<td class="num">'+f._avg.toFixed(1)+'</td></tr>';
     }).join('');
-    if(selId) showCard(rows.filter(function(f){return f.id===selId;})[0]);
   }
-
   function tile(n,l){ return '<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'; }
 
+  document.querySelector('#tbl tbody').addEventListener('click', function(e){
+    var tr=e.target.closest('tr'); if(!tr) return;
+    selId=tr.getAttribute('data-id');
+    document.querySelectorAll('#tbl tbody tr').forEach(function(r){ r.classList.toggle('sel', r===tr); });
+    renderCard();
+  });
+  document.querySelectorAll('#tbl th').forEach(function(th){
+    th.addEventListener('click', function(){
+      var k=th.getAttribute('data-k');
+      if(sortKey===k) sortDir=-sortDir; else { sortKey=k; sortDir=-1; }
+      renderTable();
+    });
+  });
+  document.getElementById('grp').addEventListener('change', renderTable);
+  document.getElementById('sty').addEventListener('change', renderTable);
+
+  function attrBlock(title, keys, f){
+    return '<div class="attrgrp"><h3>'+esc(title)+'</h3>'+keys.map(function(k){
+      var v=f.attributes[k];
+      return '<div class="attr"><span class="nm">'+esc(t('attribute.'+k))+'</span>'+
+        '<span class="bar2"><i style="width:'+(v/20*100)+'%"></i></span>'+
+        '<span class="v">'+v+'</span></div>';
+    }).join('')+'</div>';
+  }
   function axesBlock(f){
     return '<div class="attrgrp"><h3>'+t('ui.styleAxes')+' → '+esc(t('style.'+BM.styleLabel(f.styleAxes)))+'</h3>'+
       BM.STYLE_AXES.map(function(a){
         var v=f.styleAxes[a];
-        return '<div class="attr"><span class="nm">'+t('axis.'+a)+'</span>'+
-          '<span class="bar"><i style="width:'+(v/20*100)+'%;background:#6c8cd5"></i></span>'+
+        return '<div class="attr"><span class="nm">'+esc(t('axis.'+a))+'</span>'+
+          '<span class="bar2 ax"><i style="width:'+(v/20*100)+'%"></i></span>'+
           '<span class="v">'+v+'</span></div>';
       }).join('')+'</div>';
   }
 
-  function attrBlock(title, keys, f){
-    return '<div class="attrgrp"><h3>'+title+'</h3>'+keys.map(function(k){
-      var v=f.attributes[k];
-      return '<div class="attr"><span class="nm">'+k+'</span>'+
-        '<span class="bar"><i style="width:'+(v/20*100)+'%"></i></span>'+
-        '<span class="v">'+v+'</span></div>';
-    }).join('')+'</div>';
-  }
-
-  function showCard(f){
-    if(!f){ return; }
-    var c = document.getElementById('card');
-    c.innerHTML =
-      '<h2>'+esc(f.name)+'</h2>'+
-      '<div class="meta">'+f.age+' '+t('ui.years')+' • '+f.countryCode+' • '+esc(t('weightClass.'+f._wc.id))+
-        ' • '+esc(t('stance.'+f.constants.stance))+'<br>'+
-        f.constants.heightCm+' '+t('ui.cm')+', '+t('ui.reach')+' '+f.constants.reachCm+' '+t('ui.cm')+
-        ' • '+esc(t('style.'+BM.styleLabel(f.styleAxes)))+'<br>'+
+  function renderCard(){
+    var el=document.getElementById('card');
+    var f = rows.filter(function(x){return x.id===selId;})[0];
+    if(!f){ el.innerHTML='<div class="meta">'+t('ui.selectFighter')+'</div>'; return; }
+    el.innerHTML =
+      '<h2 style="margin:0 0 2px;font-size:17px">'+esc(f.name)+'</h2>'+
+      '<div class="meta" style="margin-bottom:12px">'+
+        f.age+' '+t('ui.years')+' · '+f.countryCode+' · '+esc(t('weightClass.'+f._wc.id))+
+        ' · '+esc(t('stance.'+f.constants.stance))+'<br>'+
+        t('ui.height')+' '+BM.formatLength(f.constants.heightCm,S,t('unit.cm'))+
+        ' · '+t('ui.reach')+' '+BM.formatLength(f.constants.reachCm,S,t('unit.cm'))+
+        ' · '+BM.formatWeight(f.condition.weightKg,S,t('unit.kg'),t('unit.lb'))+'<br>'+
         t('ui.record')+' '+f.record.wins+'–'+f.record.losses+'–'+f.record.draws+' ('+f.record.knockouts+' KO)'+
       '</div>'+
+      '<div class="row" style="margin-bottom:12px">'+
+        '<button class="act" id="pickA">'+t('ui.pickA')+'</button>'+
+        '<button class="act" id="pickB">'+t('ui.pickB')+'</button></div>'+
       axesBlock(f)+
       attrBlock(t('attrGroup.technical'), BM.groups.technical, f)+
       attrBlock(t('attrGroup.physical'), BM.groups.physical, f)+
       attrBlock(t('attrGroup.mental'), BM.groups.mental, f)+
       '<div class="attrgrp"><h3>'+t('ui.conditionWear')+'</h3>'+
-        '<div class="attr"><span class="nm">'+t('ui.sharpness')+'</span><span class="bar"><i style="width:'+f.condition.sharpness+'%"></i></span><span class="v">'+f.condition.sharpness+'</span></div>'+
-        '<div class="attr"><span class="nm">'+t('ui.freshness')+'</span><span class="bar"><i style="width:'+f.condition.freshness+'%"></i></span><span class="v">'+f.condition.freshness+'</span></div>'+
-        '<div class="attr"><span class="nm">'+t('ui.headWear')+'</span><span class="bar"><i style="width:'+f.wear.headTrauma+'%"></i></span><span class="v">'+f.wear.headTrauma+'</span></div>'+
+        gauge(t('ui.sharpness'), f.condition.sharpness)+gauge(t('ui.freshness'), f.condition.freshness)+
+        gauge(t('ui.headWear'), f.wear.headTrauma)+
         '<div class="attr"><span class="nm">'+t('ui.roundsBoxed')+'</span><span class="v" style="width:auto">'+f.wear.roundsBoxed+'</span></div>'+
       '</div>'+
-      '<div style="display:flex;gap:8px;margin:12px 0"><button id="pickA">'+t('ui.pickA')+'</button><button id="pickB">'+t('ui.pickB')+'</button></div>'+
-      '<div class="hidden-note">'+t('ui.potentialRange')+': <b>'+f.potentialRange[0]+'–'+f.potentialRange[1]+'</b> — '+t('ui.rangeNotNumber')+'.<br>'+
-      t('ui.hiddenAttributes')+'</div>';
+      '<div class="note">'+t('ui.potentialRange')+': <b>'+f.potentialRange[0]+'–'+f.potentialRange[1]+
+      '</b> — '+t('ui.rangeNotNumber')+'.<br>'+t('ui.hiddenAttributes')+'</div>';
+    document.getElementById('pickA').addEventListener('click', function(){ slotA=f; show('fight'); renderFight(); });
+    document.getElementById('pickB').addEventListener('click', function(){ slotB=f; show('fight'); renderFight(); });
   }
-
-  document.querySelector('#tbl tbody').addEventListener('click', function(e){
-    var tr = e.target.closest('tr'); if(!tr) return;
-    selId = tr.getAttribute('data-id');
-    document.querySelectorAll('#tbl tbody tr').forEach(function(r){ r.classList.toggle('sel', r===tr); });
-    showCard(sorted.filter(function(f){return f.id===selId;})[0]);
-  });
-  document.querySelectorAll('#tbl th').forEach(function(th){
-    th.addEventListener('click', function(){
-      var k = th.getAttribute('data-k');
-      if(sortKey===k) sortDir=-sortDir; else { sortKey=k; sortDir=-1; }
-      render();
-    });
-  });
-  var slotA = null, slotB = null;
-  document.getElementById('card').addEventListener('click', function(e){
-    var id = e.target && e.target.id;
-    if(id !== 'pickA' && id !== 'pickB') return;
-    var f = sorted.filter(function(x){return x.id===selId;})[0];
-    if(!f) return;
-    if(id === 'pickA') slotA = f; else slotB = f;
-    renderFight();
-  });
+  function gauge(label, v){
+    return '<div class="attr"><span class="nm">'+label+'</span>'+
+      '<span class="bar2"><i style="width:'+v+'%"></i></span><span class="v">'+v+'</span></div>';
+  }
 
   function renderFight(){
-    var el = document.getElementById('fightpanel');
-    if(!slotA && !slotB){ el.style.display='none'; return; }
-    el.style.display='block';
-    var head = '<h2>'+t('ui.fight')+'</h2><div class="meta">'+
-      'A: '+(slotA ? esc(slotA.name) : '—')+'  ·  B: '+(slotB ? esc(slotB.name) : '—')+'</div>';
-    if(!slotA || !slotB){ el.innerHTML = head + '<div class="meta">'+t('ui.selectBoth')+'</div>'; return; }
+    var el=document.getElementById('fightpanel');
+    if(!slotA || !slotB){
+      el.innerHTML = '<div class="meta">'+t('ui.selectBoth')+
+        (slotA ? '<br>A: '+esc(slotA.name) : '')+(slotB ? '<br>B: '+esc(slotB.name) : '')+'</div>';
+      return;
+    }
     var out = BM.runFight(slotA, slotB, parseInt(document.getElementById('seed').value,10)||0);
-    var r = out.result;
-    var rounds = {};
+    var r = out.result, per = {};
     out.eventLog.forEach(function(e){
-      if(e.t==='punch'){
-        var k = e.round+'|'+e.by;
-        rounds[k] = rounds[k] || {thrown:0,landed:0};
-        rounds[k].thrown++;
-        if(e.quality!=='miss' && e.quality!=='block') rounds[k].landed++;
-      }
+      if(e.t!=='punch') return;
+      var k=e.round+'|'+e.by; per[k]=per[k]||{th:0,ld:0}; per[k].th++;
+      if(e.quality!=='miss'&&e.quality!=='block') per[k].ld++;
     });
     var kd = out.eventLog.filter(function(e){return e.t==='knockdown';});
-    var rows = '';
+    var trs='';
     for(var i=1;i<=r.endingRound;i++){
-      var ra = rounds[i+'|a']||{thrown:0,landed:0}, rb = rounds[i+'|b']||{thrown:0,landed:0};
-      var k = kd.filter(function(e){return e.round===i;}).map(function(e){return e.by==='a'?'A↓B':'B↓A';}).join(' ');
-      rows += '<tr><td class="num">'+i+'</td><td class="num">'+ra.landed+'/'+ra.thrown+'</td>'+
-              '<td class="num">'+rb.landed+'/'+rb.thrown+'</td><td>'+k+'</td></tr>';
+      var ra=per[i+'|a']||{th:0,ld:0}, rb=per[i+'|b']||{th:0,ld:0};
+      var k=kd.filter(function(e){return e.round===i;}).map(function(e){return e.by==='a'?'A↓B':'B↓A';}).join(' ');
+      trs+='<tr><td class="num">'+i+'</td><td class="num">'+ra.ld+'/'+ra.th+'</td>'+
+           '<td class="num">'+rb.ld+'/'+rb.th+'</td><td>'+k+'</td></tr>';
     }
-    var verdict = r.winner===null ? t('ui.draw') : (r.winner==='a' ? esc(slotA.name) : esc(slotB.name));
-    el.innerHTML = head +
+    var verdict = r.winner===null ? t('ui.draw') : (r.winner==='a'?esc(slotA.name):esc(slotB.name));
+    el.innerHTML =
+      '<div class="meta" style="margin-bottom:6px">A: '+esc(slotA.name)+'  ·  B: '+esc(slotB.name)+'</div>'+
       '<div style="font-size:17px;font-weight:650;margin-bottom:4px">'+esc(t('method.'+r.method))+' — '+verdict+'</div>'+
-      '<div class="meta">'+t('ui.endingRound')+' '+r.endingRound+
+      '<div class="meta" style="margin-bottom:10px">'+t('ui.endingRound')+' '+r.endingRound+
         (r.scorecards.length ? ' · '+t('ui.scorecards')+' '+r.scorecards.map(function(c){return c[0]+'–'+c[1];}).join(', ') : '')+'</div>'+
-      '<table style="width:100%;font-size:13px"><thead><tr><th>'+t('ui.round')+'</th><th>A '+t('ui.landedThrown')+'</th><th>B '+t('ui.landedThrown')+'</th><th>'+t('ui.knockdownsShort')+'</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-      '<div class="hidden-note">ADR-0003: '+T.plural('plural.fights', 1)+' — той самий seed і ті самі бійці завжди дають той самий результат.</div>';
+      '<div class="tablewrap"><table><thead><tr><th>'+t('ui.round')+'</th><th>A '+t('ui.landedThrown')+
+        '</th><th>B '+t('ui.landedThrown')+'</th><th>'+t('ui.knockdownsShort')+'</th></tr></thead><tbody>'+trs+'</tbody></table></div>'+
+      '<div class="note">ADR-0003: той самий seed і ті самі бійці завжди дають той самий бій.</div>';
   }
 
-  var season = null;
+  // ── сезон ───────────────────────────────────────────────────────────────
   document.getElementById('runseason').addEventListener('click', function(){
-    var btn = document.getElementById('runseason');
-    btn.disabled = true; btn.textContent = '…';
+    var btn=document.getElementById('runseason'); btn.disabled=true;
     setTimeout(function(){
       season = BM.simulateSeason(parseInt(document.getElementById('seed').value,10)||0, 2000, 365);
-      btn.disabled = false; renderSeason();
+      btn.disabled=false; renderBar(); renderNews(); renderRankings(); show('world');
     }, 20);
   });
 
-  function renderSeason(){
-    if(!season){ return; }
-    document.getElementById('seasonmeta').textContent =
-      t('ui.day')+' '+season.date+' · '+season.fightsHeld+' '+t('ui.fightsHeld')+
+  function renderNews(){
+    var el=document.getElementById('newsout');
+    if(!season){ el.innerHTML='<div class="meta">'+t('ui.noRanking')+'</div>'; return; }
+    el.innerHTML =
+      '<div class="meta" style="margin-bottom:8px">'+season.fightsHeld+' '+t('ui.fightsHeld')+
       ' · '+season.injured+' '+t('ui.injured')+
-      ' · '+t('ui.tier')+' 1/2/3: '+season.tierCounts[1]+'/'+season.tierCounts[2]+'/'+season.tierCounts[3]+
-      ' ('+t('ui.fightsHeld')+': '+(season.byTier[1]||0)+'/'+(season.byTier[2]||0)+'/'+(season.byTier[3]||0)+')';
-    var html = season.news.map(function(n){
-      var p = {
-        winner: esc(season.names[n.params.winner] || '—'),
-        loser: esc(season.names[n.params.loser] || '—'),
-        method: esc(t('method.'+n.params.method)),
-        round: n.params.round
-      };
-      return '<div style="padding:5px 0;border-bottom:1px solid #23262f;font-size:13.5px">'+
-        '<span style="color:var(--dim);font-family:var(--mono);font-size:12px">'+BM.formatIso(n.day)+'</span>  '+
-        t(n.key, p)+'</div>';
-    }).join('');
-    document.getElementById('seasonout').innerHTML = html;
-    renderRankings();
+      ' · '+t('ui.tier')+' 1/2/3: '+season.tierCounts[1]+'/'+season.tierCounts[2]+'/'+season.tierCounts[3]+'</div>'+
+      season.news.slice(0,40).map(function(n){
+        return '<div class="newsrow"><span class="meta mono" style="font-size:12px">'+BM.formatIso(n.day)+'</span>  '+
+          t(n.key, { winner: esc(season.names[n.params.winner]||'—'),
+                     loser: esc(season.names[n.params.loser]||'—'),
+                     method: esc(t('method.'+n.params.method)), round: n.params.round })+'</div>';
+      }).join('');
   }
 
   function renderRankings(){
-    if(!season || !season.rankings){ return; }
-    document.getElementById('rankpanel').style.display = 'block';
-    document.getElementById('rankout').innerHTML = season.rankings.map(function(r){
-      var rows = r.rows.map(function(x){
+    var el=document.getElementById('rankout');
+    if(!season || !season.rankings){ el.innerHTML='<div class="meta">'+t('ui.noRanking')+'</div>'; return; }
+    el.innerHTML = season.rankings.map(function(r){
+      var list = r.rows.map(function(x){
         return '<div style="display:flex;gap:8px;font-size:13px;padding:2px 0">'+
-          '<span style="color:var(--dim);font-family:var(--mono);width:18px;text-align:right">'+x.position+'</span>'+
+          '<span class="meta mono" style="width:18px;text-align:right">'+x.position+'</span>'+
           '<span style="flex:1;overflow:hidden;text-overflow:ellipsis">'+esc(x.name)+'</span>'+
-          '<span style="font-family:var(--mono);color:var(--dim)">'+x.score.toFixed(2)+'</span></div>';
+          '<span class="mono meta">'+x.score.toFixed(2)+'</span></div>';
       }).join('') || '<div class="meta">'+t('ui.noRanking')+'</div>';
       return '<div><h3 style="margin:0 0 2px;font-size:13px">'+esc(t('body.'+r.bodyId))+'</h3>'+
-        '<div style="color:var(--dim);font-size:11.5px;margin-bottom:6px">'+esc(t('character.'+r.characterKey))+
-        ' · '+esc(t('weightClass.'+season.rankedClass))+'</div>'+rows+'</div>';
+        '<div class="meta" style="font-size:11.5px;margin-bottom:6px">'+esc(t('character.'+r.characterKey))+
+        ' · '+esc(t('weightClass.'+season.rankedClass))+'</div>'+list+'</div>';
     }).join('');
   }
 
-  document.getElementById('go').addEventListener('click', function(){ slotA=null; slotB=null; renderFight(); build(); });
-  applyStatic();
-  document.getElementById('grp').addEventListener('change', render);
-  sty.addEventListener('change', render);
+  show('world');
   build();
+  applySettings();
 })();
 </script>
 </body>

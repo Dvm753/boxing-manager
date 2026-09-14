@@ -1,0 +1,5 @@
+[
+  { "id": "USD", "symbol": "$",  "rateFromBase": 1.0,  "symbolPosition": "before" },
+  { "id": "EUR", "symbol": "€",  "rateFromBase": 0.92, "symbolPosition": "after"  },
+  { "id": "GBP", "symbol": "£",  "rateFromBase": 0.79, "symbolPosition": "before" }
+]
