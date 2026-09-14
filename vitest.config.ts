@@ -12,5 +12,16 @@ export default defineConfig({
       '@bm/engine-world': resolve(__dirname, 'packages/engine-world/src/index.ts'),
     },
   },
-  test: { include: ['packages/**/test/**/*.test.ts'] },
+  test: {
+    include: ['packages/**/test/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['packages/*/src/**/*.ts'],
+      // Точка входу командного рядка — оболонка вводу-виводу; уся логіка
+      // живе в `calibrate.ts` і `season.ts`, які покриті тестами.
+      exclude: ['packages/*/src/**/*.json', 'packages/sim-cli/src/cli.ts'],
+      reporter: ['text-summary', 'json-summary'],
+      thresholds: { lines: 85, branches: 85, functions: 90 },
+    },
+  },
 });

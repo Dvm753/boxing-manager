@@ -9,10 +9,13 @@
   "scripts": {
     "typecheck": "tsc --build",
     "test": "vitest run",
-    "demo": "tsx tools/build-demo.ts"
+    "coverage": "vitest run --coverage",
+    "demo": "tsx tools/build-demo.ts",
+    "sim": "tsx packages/sim-cli/src/cli.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^2.1.9",
     "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
