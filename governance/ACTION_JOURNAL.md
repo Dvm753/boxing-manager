@@ -33,3 +33,12 @@
 Зачеплені файли: STATE.md, adr/ADR-0001-language-and-stack.md, adr/ADR-0006-attribute-scale.md, adr/ADR-0007-player-role.md, adr/README.md, docs/research/OPEN_QUESTIONS.md, docs/research/Q1_CALIBRATION_TARGETS.md, governance/ACTION_JOURNAL.md
 Тести: не застосовно (коду немає)
 Наступний крок: виконати дослідження Q1 за `docs/research/Q1_CALIBRATION_TARGETS.md` і оформити цільові розподіли окремим ADR.
+
+## 2026-09-14 — CLAUDE.md як точка входу для Claude Code
+Агент: Claude Code (web)
+Завдання: зробити governance обов'язковим для Claude Code, який не завантажує `AGENTS.md` автоматично.
+Зроблено: створено `CLAUDE.md` — стартовий протокол (порядок читання, жорсткі гейти, kill-switch фрази, вимоги до завершення сесії) з явним правилом пріоритету: `AGENTS.md` — джерело правди, при розходженні діє він. Оновлено навігацію в `README.md` і розділ боргу в `STATE.md`.
+НЕ зроблено і чому: `CLAUDE.md` свідомо **не є копією** `AGENTS.md`. Повне дублювання створило б друге джерело правди, яке розійдеться з першим при першому ж редагуванні — рівно та проблема, проти якої існує `STATE.md`. Деталі лишилися в `AGENTS.md`, у `CLAUDE.md` — тільки те, що має спрацювати до читання решти. LICENSE і CI не створені: лишаються в боргу, потребують окремих рішень.
+Зачеплені файли: CLAUDE.md, README.md, STATE.md, governance/ACTION_JOURNAL.md
+Тести: не застосовно (коду немає)
+Наступний крок: дослідження Q1 за `docs/research/Q1_CALIBRATION_TARGETS.md` — погоджено власником 2026-09-14.
