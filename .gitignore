@@ -8,3 +8,6 @@ coverage/
 .env.local
 /saves/
 /out/
+
+# сирі дані досліджень: у репозиторій ідуть тільки агрегати (ADR-0005)
+/research-data/
