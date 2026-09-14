@@ -4,6 +4,7 @@
     { "path": "packages/core-model" },
     { "path": "packages/data" },
     { "path": "packages/engine-fight" },
-    { "path": "packages/sim-cli" }
+    { "path": "packages/sim-cli" },
+    { "path": "packages/i18n" }
   ]
 }

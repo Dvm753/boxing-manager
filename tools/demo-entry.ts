@@ -7,6 +7,7 @@ import { STYLE_AXES, styleLabel } from '../packages/core-model/src/style.js';
 import { createRng, deriveSeed } from '../packages/core-model/src/rng.js';
 import { simulateFight, EMPTY_PLAN } from '../packages/engine-fight/src/index.js';
 import { toSnapshot, makeJudges } from '../packages/sim-cli/src/calibrate.js';
+import { createTranslator, LOCALES, LOCALE_NAMES } from '../packages/i18n/src/index.js';
 
 // Подання лише відображає результати пакетів (ARCHITECTURE.md, інваріант 1).
 declare global {
@@ -29,6 +30,7 @@ function runFight(a: unknown, b: unknown, seed: number): unknown {
 
 window.BM = {
   generateWorld, WEIGHT_CLASSES, STYLE_AXES, styleLabel, runFight,
+  createTranslator, LOCALES, LOCALE_NAMES,
   groups: {
     technical: TECHNICAL_ATTRIBUTES,
     physical: PHYSICAL_ATTRIBUTES,

@@ -2,9 +2,12 @@ import raw from './reference/weight-classes.json' with { type: 'json' };
 
 export type WeightGroup = 'light' | 'middle' | 'heavy';
 
+/**
+ * Без назв для людини (ADR-0017): подання бере їх із `@bm/i18n`
+ * за ключем `weightClass.<id>`.
+ */
 export interface WeightClass {
   id: string;
-  nameUk: string;
   /** 0 для важкої ваги — верхньої межі немає. */
   limitKg: number;
   group: WeightGroup;

@@ -1,19 +1,87 @@
 [
-  { "id": "minimumweight",      "nameUk": "мінімальна",              "limitKg": 47.63, "group": "light" },
-  { "id": "light-flyweight",    "nameUk": "перша найлегша",          "limitKg": 48.99, "group": "light" },
-  { "id": "flyweight",          "nameUk": "найлегша",                "limitKg": 50.80, "group": "light" },
-  { "id": "super-flyweight",    "nameUk": "друга найлегша",          "limitKg": 52.16, "group": "light" },
-  { "id": "bantamweight",       "nameUk": "легша",                   "limitKg": 53.52, "group": "light" },
-  { "id": "super-bantamweight", "nameUk": "друга легша",             "limitKg": 55.34, "group": "light" },
-  { "id": "featherweight",      "nameUk": "напівлегка",              "limitKg": 57.15, "group": "light" },
-  { "id": "super-featherweight","nameUk": "друга напівлегка",        "limitKg": 58.97, "group": "light" },
-  { "id": "lightweight",        "nameUk": "легка",                   "limitKg": 61.23, "group": "light" },
-  { "id": "super-lightweight",  "nameUk": "перша напівсередня",      "limitKg": 63.50, "group": "middle" },
-  { "id": "welterweight",       "nameUk": "напівсередня",            "limitKg": 66.68, "group": "middle" },
-  { "id": "super-welterweight", "nameUk": "перша середня",           "limitKg": 69.85, "group": "middle" },
-  { "id": "middleweight",       "nameUk": "середня",                 "limitKg": 72.57, "group": "middle" },
-  { "id": "super-middleweight", "nameUk": "друга середня",           "limitKg": 76.20, "group": "middle" },
-  { "id": "light-heavyweight",  "nameUk": "напівважка",              "limitKg": 79.38, "group": "heavy" },
-  { "id": "cruiserweight",      "nameUk": "перша важка",             "limitKg": 90.72, "group": "heavy" },
-  { "id": "heavyweight",        "nameUk": "важка",                   "limitKg": 0,     "group": "heavy" }
+  {
+    "id": "minimumweight",
+    "limitKg": 47.63,
+    "group": "light"
+  },
+  {
+    "id": "light-flyweight",
+    "limitKg": 48.99,
+    "group": "light"
+  },
+  {
+    "id": "flyweight",
+    "limitKg": 50.8,
+    "group": "light"
+  },
+  {
+    "id": "super-flyweight",
+    "limitKg": 52.16,
+    "group": "light"
+  },
+  {
+    "id": "bantamweight",
+    "limitKg": 53.52,
+    "group": "light"
+  },
+  {
+    "id": "super-bantamweight",
+    "limitKg": 55.34,
+    "group": "light"
+  },
+  {
+    "id": "featherweight",
+    "limitKg": 57.15,
+    "group": "light"
+  },
+  {
+    "id": "super-featherweight",
+    "limitKg": 58.97,
+    "group": "light"
+  },
+  {
+    "id": "lightweight",
+    "limitKg": 61.23,
+    "group": "light"
+  },
+  {
+    "id": "super-lightweight",
+    "limitKg": 63.5,
+    "group": "middle"
+  },
+  {
+    "id": "welterweight",
+    "limitKg": 66.68,
+    "group": "middle"
+  },
+  {
+    "id": "super-welterweight",
+    "limitKg": 69.85,
+    "group": "middle"
+  },
+  {
+    "id": "middleweight",
+    "limitKg": 72.57,
+    "group": "middle"
+  },
+  {
+    "id": "super-middleweight",
+    "limitKg": 76.2,
+    "group": "middle"
+  },
+  {
+    "id": "light-heavyweight",
+    "limitKg": 79.38,
+    "group": "heavy"
+  },
+  {
+    "id": "cruiserweight",
+    "limitKg": 90.72,
+    "group": "heavy"
+  },
+  {
+    "id": "heavyweight",
+    "limitKg": 0,
+    "group": "heavy"
+  }
 ]

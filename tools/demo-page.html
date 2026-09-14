@@ -78,13 +78,14 @@
 </header>
 
 <div class="controls">
-  <div class="field"><label for="seed">Seed</label><input id="seed" type="number" value="2026"></div>
-  <div class="field"><label for="count">Бійців</label><input id="count" type="number" value="500" min="10" max="5000"></div>
-  <div class="field"><label for="grp">Вагова група</label>
+  <div class="field"><label for="seed" data-i18n="ui.seed">Seed</label><input id="seed" type="number" value="2026"></div>
+  <div class="field"><label for="count" data-i18n="ui.fighters">Бійців</label><input id="count" type="number" value="500" min="10" max="5000"></div>
+  <div class="field"><label for="grp" data-i18n="ui.weightGroup">Вагова група</label>
     <select id="grp"><option value="">усі</option><option value="light">легка</option>
     <option value="middle">середня</option><option value="heavy">важка</option></select></div>
-  <div class="field"><label for="sty">Стиль</label><select id="sty"><option value="">усі</option></select></div>
-  <button id="go">Згенерувати</button>
+  <div class="field"><label for="sty" data-i18n="ui.style">Стиль</label><select id="sty"><option value="">усі</option></select></div>
+  <div class="field"><label for="loc" data-i18n="ui.language">Мова</label><select id="loc"></select></div>
+  <button id="go" data-i18n="ui.generate">Згенерувати</button>
 </div>
 
 <div class="stats" id="stats"></div>
@@ -93,15 +94,15 @@
   <div class="tablewrap">
     <table id="tbl">
       <thead><tr>
-        <th data-k="name">Боєць</th><th data-k="countryCode">Країна</th>
-        <th data-k="age" class="num">Вік</th><th data-k="wc">Вага</th>
-        <th data-k="style">Стиль</th><th data-k="rec">Рекорд</th>
-        <th data-k="avg" class="num">Сер.</th>
+        <th data-k="name" data-i18n="ui.fighter">Боєць</th><th data-k="countryCode" data-i18n="ui.country">Країна</th>
+        <th data-k="age" class="num" data-i18n="ui.age">Вік</th><th data-k="wc" data-i18n="ui.weight">Вага</th>
+        <th data-k="style" data-i18n="ui.style">Стиль</th><th data-k="rec" data-i18n="ui.record">Рекорд</th>
+        <th data-k="avg" class="num" data-i18n="ui.avgShort">Сер.</th>
       </tr></thead>
       <tbody></tbody>
     </table>
   </div>
-  <div class="card" id="card"><div class="meta">Оберіть бійця зі списку.</div></div>
+  <div class="card" id="card"><div class="meta" data-i18n="ui.selectFighter">Оберіть бійця зі списку.</div></div>
 </div>
 
 <div class="card" id="fightpanel" style="margin-top:18px;display:none"></div>
@@ -136,10 +137,44 @@
 <script>
 (function(){
   var BM = window.BM, world = null, sorted = [], sortKey = 'avg', sortDir = -1, selId = null;
+  var loc = 'uk', T = BM.createTranslator(loc);
+  function t(k, p){ return T.t(k, p); }
+
+  var locSel = document.getElementById('loc');
+  BM.LOCALES.forEach(function(code){
+    var o = document.createElement('option');
+    o.value = code; o.textContent = BM.LOCALE_NAMES[code];
+    locSel.appendChild(o);
+  });
+  locSel.value = loc;
+  locSel.addEventListener('change', function(){
+    loc = locSel.value; T = BM.createTranslator(loc); applyStatic(); render(); renderFight();
+  });
+
+  function applyStatic(){
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    document.documentElement.lang = loc;
+    fillSelect(document.getElementById('grp'), ['','light','middle','heavy'], function(v){
+      return v ? t('group.'+v) : t('ui.all');
+    });
+    fillSelect(sty, [''].concat(STYLES), function(v){ return v ? t('style.'+v) : t('ui.all'); });
+  }
+
+  function fillSelect(el, values, label){
+    var keep = el.value;
+    el.innerHTML = '';
+    values.forEach(function(v){
+      var o = document.createElement('option');
+      o.value = v; o.textContent = label(v);
+      el.appendChild(o);
+    });
+    el.value = keep;
+  }
   var WC = {}; BM.WEIGHT_CLASSES.forEach(function(w){ WC[w.id] = w; });
   var STYLES = ['out-boxer','boxer-puncher','pressure-fighter','slugger','counter-puncher','switch-hitter','spoiler'];
   var sty = document.getElementById('sty');
-  STYLES.forEach(function(s){ var o=document.createElement('option'); o.value=s; o.textContent=s; sty.appendChild(o); });
 
   function avg(f){ var v=Object.values(f.attributes); return v.reduce(function(a,b){return a+b;},0)/v.length; }
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -179,18 +214,18 @@
     var ages = rows.map(function(f){return f.age;});
     var south = rows.filter(function(f){return f.constants.stance==='southpaw';}).length;
     st.innerHTML =
-      tile(rows.length,'бійців у вибірці') +
-      tile(elite,'середній атрибут ≥ 15') +
-      tile(rookie,'середній атрибут ≤ 10') +
-      tile(ages.length? (ages.reduce(function(a,b){return a+b;},0)/ages.length).toFixed(1):'—','середній вік') +
-      tile(rows.length? Math.round(south/rows.length*100)+'%':'—','лівші');
+      tile(rows.length, t('ui.inSample')) +
+      tile(elite, t('ui.avgAttrHigh')) +
+      tile(rookie, t('ui.avgAttrLow')) +
+      tile(ages.length? (ages.reduce(function(a,b){return a+b;},0)/ages.length).toFixed(1):'—', t('ui.avgAge')) +
+      tile(rows.length? Math.round(south/rows.length*100)+'%':'—', t('ui.southpaws'));
 
     var tb = document.querySelector('#tbl tbody');
     tb.innerHTML = rows.slice(0,400).map(function(f){
       return '<tr data-id="'+f.id+'"'+(f.id===selId?' class="sel"':'')+'>'+
         '<td>'+esc(f.name)+'</td><td>'+f.countryCode+'</td>'+
-        '<td class="num">'+f.age+'</td><td>'+esc(f._wc.nameUk)+'</td>'+
-        '<td>'+BM.styleLabel(f.styleAxes)+'</td>'+
+        '<td class="num">'+f.age+'</td><td>'+esc(t('weightClass.'+f._wc.id))+'</td>'+
+        '<td>'+esc(t('style.'+BM.styleLabel(f.styleAxes)))+'</td>'+
         '<td class="num">'+f.record.wins+'–'+f.record.losses+'–'+f.record.draws+' ('+f.record.knockouts+' KO)</td>'+
         '<td class="num">'+f._avg.toFixed(1)+'</td></tr>';
     }).join('');
@@ -200,12 +235,10 @@
   function tile(n,l){ return '<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'; }
 
   function axesBlock(f){
-    var labels = {preferredRange:'дистанція',pressure:'тиск',punchVolume:"об'єм",
-      risk:'ризик',counterTendency:'контратаки',bodyAttack:'по корпусу'};
-    return '<div class="attrgrp"><h3>Осі стилю → '+BM.styleLabel(f.styleAxes)+'</h3>'+
+    return '<div class="attrgrp"><h3>'+t('ui.styleAxes')+' → '+esc(t('style.'+BM.styleLabel(f.styleAxes)))+'</h3>'+
       BM.STYLE_AXES.map(function(a){
         var v=f.styleAxes[a];
-        return '<div class="attr"><span class="nm">'+labels[a]+'</span>'+
+        return '<div class="attr"><span class="nm">'+t('axis.'+a)+'</span>'+
           '<span class="bar"><i style="width:'+(v/20*100)+'%;background:#6c8cd5"></i></span>'+
           '<span class="v">'+v+'</span></div>';
       }).join('')+'</div>';
@@ -225,23 +258,25 @@
     var c = document.getElementById('card');
     c.innerHTML =
       '<h2>'+esc(f.name)+'</h2>'+
-      '<div class="meta">'+f.age+' р. • '+f.countryCode+' • '+esc(f._wc.nameUk)+' • '+f.constants.stance+'<br>'+
-        f.constants.heightCm+' см, розмах '+f.constants.reachCm+' см • '+BM.styleLabel(f.styleAxes)+'<br>'+
-        'Рекорд '+f.record.wins+'–'+f.record.losses+'–'+f.record.draws+' ('+f.record.knockouts+' KO)'+
+      '<div class="meta">'+f.age+' '+t('ui.years')+' • '+f.countryCode+' • '+esc(t('weightClass.'+f._wc.id))+
+        ' • '+esc(t('stance.'+f.constants.stance))+'<br>'+
+        f.constants.heightCm+' '+t('ui.cm')+', '+t('ui.reach')+' '+f.constants.reachCm+' '+t('ui.cm')+
+        ' • '+esc(t('style.'+BM.styleLabel(f.styleAxes)))+'<br>'+
+        t('ui.record')+' '+f.record.wins+'–'+f.record.losses+'–'+f.record.draws+' ('+f.record.knockouts+' KO)'+
       '</div>'+
       axesBlock(f)+
-      attrBlock('Технічні', BM.groups.technical, f)+
-      attrBlock('Фізичні', BM.groups.physical, f)+
-      attrBlock('Ментальні', BM.groups.mental, f)+
-      '<div class="attrgrp"><h3>Форма і знос</h3>'+
-        '<div class="attr"><span class="nm">гострота</span><span class="bar"><i style="width:'+f.condition.sharpness+'%"></i></span><span class="v">'+f.condition.sharpness+'</span></div>'+
-        '<div class="attr"><span class="nm">свіжість</span><span class="bar"><i style="width:'+f.condition.freshness+'%"></i></span><span class="v">'+f.condition.freshness+'</span></div>'+
-        '<div class="attr"><span class="nm">знос голови</span><span class="bar"><i style="width:'+f.wear.headTrauma+'%"></i></span><span class="v">'+f.wear.headTrauma+'</span></div>'+
-        '<div class="attr"><span class="nm">раундів</span><span class="v" style="width:auto">'+f.wear.roundsBoxed+'</span></div>'+
+      attrBlock(t('attrGroup.technical'), BM.groups.technical, f)+
+      attrBlock(t('attrGroup.physical'), BM.groups.physical, f)+
+      attrBlock(t('attrGroup.mental'), BM.groups.mental, f)+
+      '<div class="attrgrp"><h3>'+t('ui.conditionWear')+'</h3>'+
+        '<div class="attr"><span class="nm">'+t('ui.sharpness')+'</span><span class="bar"><i style="width:'+f.condition.sharpness+'%"></i></span><span class="v">'+f.condition.sharpness+'</span></div>'+
+        '<div class="attr"><span class="nm">'+t('ui.freshness')+'</span><span class="bar"><i style="width:'+f.condition.freshness+'%"></i></span><span class="v">'+f.condition.freshness+'</span></div>'+
+        '<div class="attr"><span class="nm">'+t('ui.headWear')+'</span><span class="bar"><i style="width:'+f.wear.headTrauma+'%"></i></span><span class="v">'+f.wear.headTrauma+'</span></div>'+
+        '<div class="attr"><span class="nm">'+t('ui.roundsBoxed')+'</span><span class="v" style="width:auto">'+f.wear.roundsBoxed+'</span></div>'+
       '</div>'+
-      '<div style="display:flex;gap:8px;margin:12px 0"><button id="pickA">Обрати як A</button><button id="pickB">Обрати як B</button></div>'+
-      '<div class="hidden-note">Стеля зростання: <b>'+f.potentialRange[0]+'–'+f.potentialRange[1]+'</b> — діапазон, не число.<br>'+
-      '10 прихованих атрибутів (підборіддя, серце, стійкість до розсічень…) гравцю не показуються ніколи.</div>';
+      '<div style="display:flex;gap:8px;margin:12px 0"><button id="pickA">'+t('ui.pickA')+'</button><button id="pickB">'+t('ui.pickB')+'</button></div>'+
+      '<div class="hidden-note">'+t('ui.potentialRange')+': <b>'+f.potentialRange[0]+'–'+f.potentialRange[1]+'</b> — '+t('ui.rangeNotNumber')+'.<br>'+
+      t('ui.hiddenAttributes')+'</div>';
   }
 
   document.querySelector('#tbl tbody').addEventListener('click', function(e){
@@ -271,9 +306,9 @@
     var el = document.getElementById('fightpanel');
     if(!slotA && !slotB){ el.style.display='none'; return; }
     el.style.display='block';
-    var head = '<h2>Бій</h2><div class="meta">'+
+    var head = '<h2>'+t('ui.fight')+'</h2><div class="meta">'+
       'A: '+(slotA ? esc(slotA.name) : '—')+'  ·  B: '+(slotB ? esc(slotB.name) : '—')+'</div>';
-    if(!slotA || !slotB){ el.innerHTML = head + '<div class="meta">Оберіть обох бійців.</div>'; return; }
+    if(!slotA || !slotB){ el.innerHTML = head + '<div class="meta">'+t('ui.selectBoth')+'</div>'; return; }
     var out = BM.runFight(slotA, slotB, parseInt(document.getElementById('seed').value,10)||0);
     var r = out.result;
     var rounds = {};
@@ -293,16 +328,17 @@
       rows += '<tr><td class="num">'+i+'</td><td class="num">'+ra.landed+'/'+ra.thrown+'</td>'+
               '<td class="num">'+rb.landed+'/'+rb.thrown+'</td><td>'+k+'</td></tr>';
     }
-    var verdict = r.winner===null ? 'нічия' : (r.winner==='a' ? esc(slotA.name) : esc(slotB.name));
+    var verdict = r.winner===null ? t('ui.draw') : (r.winner==='a' ? esc(slotA.name) : esc(slotB.name));
     el.innerHTML = head +
-      '<div style="font-size:17px;font-weight:650;margin-bottom:4px">'+r.method+' — '+verdict+'</div>'+
-      '<div class="meta">раунд завершення '+r.endingRound+
-        (r.scorecards.length ? ' · картки '+r.scorecards.map(function(c){return c[0]+'–'+c[1];}).join(', ') : '')+'</div>'+
-      '<table style="width:100%;font-size:13px"><thead><tr><th>Рд</th><th>A влуч/кин</th><th>B влуч/кин</th><th>KD</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-      '<div class="hidden-note">Той самий seed і ті самі бійці завжди дають цей самий бій — ADR-0003.</div>';
+      '<div style="font-size:17px;font-weight:650;margin-bottom:4px">'+esc(t('method.'+r.method))+' — '+verdict+'</div>'+
+      '<div class="meta">'+t('ui.endingRound')+' '+r.endingRound+
+        (r.scorecards.length ? ' · '+t('ui.scorecards')+' '+r.scorecards.map(function(c){return c[0]+'–'+c[1];}).join(', ') : '')+'</div>'+
+      '<table style="width:100%;font-size:13px"><thead><tr><th>'+t('ui.round')+'</th><th>A '+t('ui.landedThrown')+'</th><th>B '+t('ui.landedThrown')+'</th><th>'+t('ui.knockdownsShort')+'</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+      '<div class="hidden-note">ADR-0003: '+T.plural('plural.fights', 1)+' — той самий seed і ті самі бійці завжди дають той самий результат.</div>';
   }
 
   document.getElementById('go').addEventListener('click', function(){ slotA=null; slotB=null; renderFight(); build(); });
+  applyStatic();
   document.getElementById('grp').addEventListener('change', render);
   sty.addEventListener('change', render);
   build();
