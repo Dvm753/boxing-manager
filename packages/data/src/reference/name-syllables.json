@@ -1,0 +1,19 @@
+{
+  "_note": "Склади, а не імена. ADR-0005 забороняє реальні імена в packages/data; генерація зі складів не може містити списку реальних людей.",
+  "regions": {
+    "MEX": { "first": ["Ra","Mi","Ja","Ne","Ser","Ale","Car","Ed","Ju","Ro"], "firstEnd": ["mon","guel","vier","sto","gio","jan","los","gar","lio","ben"],
+             "last": ["Var","Cas","Ol","Ram","Men","Sal","Ter","Qui","Nav","Zar"], "lastEnd": ["gas","tro","mena","irez","doza","zar","rano","ntas","arro","ate"] },
+    "USA": { "first": ["Mar","Dev","Tre","Ja","Cam","Bra","Kor","Dar","Lo","Xa"], "firstEnd": ["cus","on","vor","len","den","dy","ell","ius","gan","vier"],
+             "last": ["Hol","Brad","Whit","Kes","Rand","Mor","Fin","Gar","Ash","Col"], "lastEnd": ["loway","ford","field","sler","all","ley","negan","rett","ton","eman"] },
+    "GBR": { "first": ["Cal","Dec","Rhys","Ol","Jos","Ken","Fin","Har","Ell","Ned"], "firstEnd": ["lum","lan","","lie","eph","dall","lay","vey","iot","ric"],
+             "last": ["Whit","Brom","Har","Kend","Ash","Bell","Card","Ing","Thorn","Wex"], "lastEnd": ["comb","ley","greave","rick","worth","amy","well","ram","bury","ford"] },
+    "UKR": { "first": ["Ost","Dan","Yar","Vol","Tar","Ser","Bohd","Mak","Ilar","Rus"], "firstEnd": ["ap","ylo","oslav","odym","as","hiy","an","sym","ion","lan"],
+             "last": ["Kov","Bond","Melnyk","Tkach","Shev","Palyt","Hrytsen","Dan","Zahor","Marchen"], "lastEnd": ["alenko","arenko","","uk","chuk","sia","ko","ylko","ui","ko"] },
+    "JPN": { "first": ["Ken","Rui","Tak","Hiro","Sho","Nao","Yu","Dai","Ryo","Kaz"], "firstEnd": ["ji","","umi","shi","ta","ya","ki","go","ma","uo"],
+             "last": ["Kita","Mori","Take","Hoso","Yana","Shira","Kuro","Aki","Fuji","Nagai"], "lastEnd": ["gawa","shita","hara","da","gi","ishi","numa","moto","yama",""] },
+    "CUB": { "first": ["Yos","Lean","Arn","Rei","Dari","Ors","Yun","Elie","Rob","Mai"], "firstEnd": ["vany","dro","aldo","nier","el","mel","ior","cer","lys","kel"],
+             "last": ["Caba","Iglе","Ferr","Mont","Bet","Ques","Dur","Vald","Sos","Rond"], "lastEnd": ["llero","sias","eira","alvo","ancourt","ada","uan","ivia","tana","on"] },
+    "KAZ": { "first": ["Yer","Adil","Nur","Bek","Tem","Sanz","Ait","Dau","Zhan","Kai"], "firstEnd": ["lan","bek","zhan","tas","ir","har","bay","ren","ibek","rat"],
+             "last": ["Abil","Serik","Tolen","Musa","Zhaks","Ory","Kurman","Bait","Sagyn","Yeles"], "lastEnd": ["dinov","bayev","ov","nov","ylbek","nbay","gali","asov","tay","sov"] }
+  }
+}
