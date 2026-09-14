@@ -1,0 +1,36 @@
+# Обов'язкові перевірки. `AGENTS.md` §5: тест детермінізму в CI — обов'язковий.
+# `DEFINITION_OF_DONE.md`: зелена збірка є умовою завершення задачі.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Встановити залежності
+        run: npm ci
+
+      - name: Типізація
+        run: npm run typecheck
+
+      # Сюди входять тести детермінізму рушія бою і тіку дня (ADR-0003, ADR-0016),
+      # інваріант рівнів деталізації (ADR-0015) і повнота словників (ADR-0017).
+      - name: Тести і покриття
+        run: npm run coverage
+
+      # Гейт фази 0 окремим кроком: він повертає код виходу 1, якщо розподіли
+      # вийшли за коридори ADR-0008. Провал тут означає зсув балансу рушія.
+      - name: Гейт калібрування (ADR-0008, ADR-0009)
+        run: npm run sim -- calibrate 2500
