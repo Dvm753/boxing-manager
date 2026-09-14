@@ -65,6 +65,32 @@ function applyAxisBias(attributes: Attributes, axes: StyleAxes): void {
   bump('bodyPunching', off(axes.bodyAttack) * 4);
 }
 
+/**
+ * Ваговий профіль — **неперервний за вагою**, а не три відра.
+ * Відра давали немонотонність: середня вага не отримувала ні бонусу до сили важких,
+ * ні бонусу до підборіддя й відновлення легких, і виявлялася найкрихкішою з трьох.
+ *
+ * Це фізика виду спорту, а не балансування: саме звідси береться виміряна різниця
+ * у частці дострокових завершень між групами (ADR-0008).
+ */
+function applyWeightBias(attributes: Attributes, limitKg: number): void {
+  const bump = (key: keyof Attributes, delta: number): void => {
+    attributes[key] = Math.max(1, Math.min(20, Math.round(attributes[key] + delta)));
+  };
+  // 0 у мінімальній вазі, 1 у важкій (безлімітна рахується як 100 кг).
+  const t = Math.max(0, Math.min(1, ((limitKg === 0 ? 100 : limitKg) - 47.6) / (100 - 47.6)));
+  const s = t - 0.5; // -0.5 ... +0.5
+
+  bump('punchPower', s * 1.76);
+  bump('strength', s * 1.32);
+  bump('chin', -s * 0.825);
+  bump('recovery', -s * 0.77);
+  bump('stamina', -s * 0.88);
+  bump('workRate', -s * 0.77);
+  bump('handSpeed', -s * 0.66);
+  bump('footSpeed', -s * 0.55);
+}
+
 export interface GeneratedWorld {
   seed: number;
   fighters: readonly Fighter[];
@@ -86,6 +112,7 @@ export function generateWorld(seed: number, count: number): GeneratedWorld {
     applyAxisBias(attributes, styleAxes);
 
     const weightClass = rng.pick(WEIGHT_CLASSES);
+    applyWeightBias(attributes, weightClass.limitKg);
     const region = rng.pick(regions);
     const age = rng.normalInt(18, 38);
     const stance: Stance = rng.next() < 0.16 ? 'southpaw' : rng.next() < 0.02 ? 'switch' : 'orthodox';

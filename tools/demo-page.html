@@ -104,6 +104,8 @@
   <div class="card" id="card"><div class="meta">Оберіть бійця зі списку.</div></div>
 </div>
 
+<div class="card" id="fightpanel" style="margin-top:18px;display:none"></div>
+
 <div class="scope">
   <h3>Що тут працює насправді</h3>
   <ul>
@@ -118,12 +120,14 @@
   </ul>
   <h3>Чого ще немає</h3>
   <ul>
-    <li class="no">Рушія бою. Бійці існують, але не б'ються — це наступний етап</li>
+    <li class="yes">Рушій бою: обміни, позиції, градації влучання, нокдаути, суддівство — <code>ADR-0003</code>, <code>ADR-0012</code></li>
+    <li class="yes">Гейт фази 0 пройдено: M1, M3, M4 у коридорах <code>ADR-0008</code> на 2500 боях × 3 групи</li>
     <li class="no">Календаря, контрактів, рейтингів, промоутерів, грошей</li>
+    <li class="no">Розподілу раунду зупинки і нокдаунів у гейті — винесено у фазу 1 (<code>ADR-0009</code>)</li>
     <li class="no">Плану бою і вказівок кутка — контракт зафіксовано (ADR-0014), реалізація у фазі 1</li>
   </ul>
   <p style="color:var(--dim);font-size:13px;margin:0">
-    Перевірте детермінізм самі: запам'ятайте першого бійця, змініть seed, поверніть назад — список буде той самий.
+    Оберіть бійця → «Обрати як A», потім іншого → «Обрати як B». Бій прорахується тим самим рушієм, що проходить golden-тести.
   </p>
 </div>
 </div>
@@ -235,6 +239,7 @@
         '<div class="attr"><span class="nm">знос голови</span><span class="bar"><i style="width:'+f.wear.headTrauma+'%"></i></span><span class="v">'+f.wear.headTrauma+'</span></div>'+
         '<div class="attr"><span class="nm">раундів</span><span class="v" style="width:auto">'+f.wear.roundsBoxed+'</span></div>'+
       '</div>'+
+      '<div style="display:flex;gap:8px;margin:12px 0"><button id="pickA">Обрати як A</button><button id="pickB">Обрати як B</button></div>'+
       '<div class="hidden-note">Стеля зростання: <b>'+f.potentialRange[0]+'–'+f.potentialRange[1]+'</b> — діапазон, не число.<br>'+
       '10 прихованих атрибутів (підборіддя, серце, стійкість до розсічень…) гравцю не показуються ніколи.</div>';
   }
@@ -252,7 +257,52 @@
       render();
     });
   });
-  document.getElementById('go').addEventListener('click', build);
+  var slotA = null, slotB = null;
+  document.getElementById('card').addEventListener('click', function(e){
+    var id = e.target && e.target.id;
+    if(id !== 'pickA' && id !== 'pickB') return;
+    var f = sorted.filter(function(x){return x.id===selId;})[0];
+    if(!f) return;
+    if(id === 'pickA') slotA = f; else slotB = f;
+    renderFight();
+  });
+
+  function renderFight(){
+    var el = document.getElementById('fightpanel');
+    if(!slotA && !slotB){ el.style.display='none'; return; }
+    el.style.display='block';
+    var head = '<h2>Бій</h2><div class="meta">'+
+      'A: '+(slotA ? esc(slotA.name) : '—')+'  ·  B: '+(slotB ? esc(slotB.name) : '—')+'</div>';
+    if(!slotA || !slotB){ el.innerHTML = head + '<div class="meta">Оберіть обох бійців.</div>'; return; }
+    var out = BM.runFight(slotA, slotB, parseInt(document.getElementById('seed').value,10)||0);
+    var r = out.result;
+    var rounds = {};
+    out.eventLog.forEach(function(e){
+      if(e.t==='punch'){
+        var k = e.round+'|'+e.by;
+        rounds[k] = rounds[k] || {thrown:0,landed:0};
+        rounds[k].thrown++;
+        if(e.quality!=='miss' && e.quality!=='block') rounds[k].landed++;
+      }
+    });
+    var kd = out.eventLog.filter(function(e){return e.t==='knockdown';});
+    var rows = '';
+    for(var i=1;i<=r.endingRound;i++){
+      var ra = rounds[i+'|a']||{thrown:0,landed:0}, rb = rounds[i+'|b']||{thrown:0,landed:0};
+      var k = kd.filter(function(e){return e.round===i;}).map(function(e){return e.by==='a'?'A↓B':'B↓A';}).join(' ');
+      rows += '<tr><td class="num">'+i+'</td><td class="num">'+ra.landed+'/'+ra.thrown+'</td>'+
+              '<td class="num">'+rb.landed+'/'+rb.thrown+'</td><td>'+k+'</td></tr>';
+    }
+    var verdict = r.winner===null ? 'нічия' : (r.winner==='a' ? esc(slotA.name) : esc(slotB.name));
+    el.innerHTML = head +
+      '<div style="font-size:17px;font-weight:650;margin-bottom:4px">'+r.method+' — '+verdict+'</div>'+
+      '<div class="meta">раунд завершення '+r.endingRound+
+        (r.scorecards.length ? ' · картки '+r.scorecards.map(function(c){return c[0]+'–'+c[1];}).join(', ') : '')+'</div>'+
+      '<table style="width:100%;font-size:13px"><thead><tr><th>Рд</th><th>A влуч/кин</th><th>B влуч/кин</th><th>KD</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+      '<div class="hidden-note">Той самий seed і ті самі бійці завжди дають цей самий бій — ADR-0003.</div>';
+  }
+
+  document.getElementById('go').addEventListener('click', function(){ slotA=null; slotB=null; renderFight(); build(); });
   document.getElementById('grp').addEventListener('change', render);
   sty.addEventListener('change', render);
   build();
