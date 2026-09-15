@@ -1,5 +1,6 @@
 import type { EventHandler, HandlerResult } from './event-bus.js';
-import type { FightRecordEntry, World, WorldEvent } from './types.js';
+import { conditionAfterFight } from './condition.js';
+import type { ConditionChange, FightRecordEntry, World, WorldEvent } from './types.js';
 
 const unchanged = (world: World): HandlerResult => ({ world });
 
@@ -86,6 +87,12 @@ const wearHandler: EventHandler = (event, world) => {
   const recovery = 56 + event.rounds * 2 + Math.round(headTrauma * 0.35);
   emit.push({ t: 'FighterRecovering', fighterId: event.fighterId, daysOut: recovery });
 
+  // Форма падає від того самого бою, але окремою подією: знос незворотний, форма — ні.
+  emit.push({
+    t: 'FighterConditionDrained', fighterId: event.fighterId,
+    rounds: event.rounds, headDelta: event.headDelta,
+  });
+
   // Травма — окрема, довша пауза поверх відновлення.
   if (event.headDelta >= 3 && event.rounds >= 8) {
     emit.push({ t: 'FighterInjured', fighterId: event.fighterId, daysOut: 45 + Math.round(headTrauma * 0.8) });
@@ -121,6 +128,32 @@ const availabilityHandler: EventHandler = (event, world) => {
   };
 };
 
+/**
+ * Форма (ADR-0022). Єдиний обробник, що змінює `condition`: денний перерахунок і
+ * провал після бою приходять сюди, більше форму не чіпає ніхто.
+ */
+const applyChanges = (world: World, changes: readonly ConditionChange[]): World => {
+  if (changes.length === 0) return world;
+  const fighters = { ...world.fighters };
+  for (const change of changes) {
+    const fighter = fighters[change.fighterId];
+    if (!fighter) continue;
+    fighters[change.fighterId] = {
+      ...fighter,
+      condition: { ...fighter.condition, sharpness: change.sharpness, freshness: change.freshness },
+    };
+  }
+  return { ...world, fighters };
+};
+
+const conditionHandler: EventHandler = (event, world) => {
+  if (event.t === 'ConditionAdvanced') return { world: applyChanges(world, event.changes) };
+  if (event.t !== 'FighterConditionDrained') return unchanged(world);
+  const fighter = world.fighters[event.fighterId];
+  if (!fighter) return unchanged(world);
+  return { world: applyChanges(world, [conditionAfterFight(fighter, event.rounds, event.headDelta)]) };
+};
+
 /** Стрічка новин. Зберігає ключ і параметри, не готовий рядок (ADR-0017). */
 const newsHandler: EventHandler = (event, world) => {
   if (event.t !== 'NewsCreated') return unchanged(world);
@@ -130,5 +163,5 @@ const newsHandler: EventHandler = (event, world) => {
 };
 
 export const HANDLERS: readonly EventHandler[] = [
-  recordHandler, wearHandler, availabilityHandler, newsHandler,
+  recordHandler, wearHandler, availabilityHandler, conditionHandler, newsHandler,
 ];

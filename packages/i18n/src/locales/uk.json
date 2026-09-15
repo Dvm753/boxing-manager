@@ -212,5 +212,10 @@
   "cut.right-eye": "права брова",
   "cut.forehead": "чоло",
   "ui.playByPlay": "Текстовий репортаж",
-  "ui.byRound": "За раундами"
+  "ui.byRound": "За раундами",
+  "ui.formInWorld": "Форма у світі",
+  "ui.avgSharpness": "Середня гострота",
+  "ui.inCamp": "У таборі",
+  "ui.recovering": "Відновлюються",
+  "ui.daysToFight": "днів до бою"
 }

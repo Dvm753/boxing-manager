@@ -1,0 +1,27 @@
+{
+  "_note": "Коефіцієнти динаміки форми (ADR-0022). Зміна будь-якого числа тут — клас A.",
+
+  "sharpness": {
+    "_note": "Гострота: ринг-руст від простою, набір у таборі. Стеля залежить від бійця.",
+    "idleDecayPerDay": 0.22,
+    "floor": 25,
+    "campWindowDays": 56,
+    "campGainPerDay": 0.55,
+    "fightGain": 6,
+    "ceilingBase": 70,
+    "ceilingPerWorkRate": 1.0,
+    "ceilingPerProfessionalism": 0.5
+  },
+
+  "freshness": {
+    "_note": "Свіжість: провал після бою, відновлення з часом, втома від табору.",
+    "postFightBase": 18,
+    "postFightPerRound": 2.2,
+    "postFightPerHeadDelta": 4,
+    "recoveryPerDay": 1.4,
+    "recoveryPerAttribute": 0.06,
+    "campFatiguePerDay": 0.8,
+    "floor": 5,
+    "max": 100
+  }
+}

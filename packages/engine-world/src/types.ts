@@ -58,6 +58,13 @@ export interface World {
   rankingsPublishedOn: number;
 }
 
+/** Нове значення форми бійця. Обидва поля 0–100 (ADR-0022). */
+export interface ConditionChange {
+  fighterId: string;
+  sharpness: number;
+  freshness: number;
+}
+
 export type WorldEvent =
   | { t: 'DayAdvanced'; day: number }
   | {
@@ -73,6 +80,16 @@ export type WorldEvent =
    * у ринг щотижня: між боями табір і відпочинок (`WORLD_ENGINE_SPEC.md`).
    */
   | { t: 'FighterRecovering'; fighterId: string; daysOut: number }
+  /**
+   * Форма за день для всього світу (ADR-0022). Подія **пакетна** навмисно: окрема
+   * подія на бійця означала б тисячі копій мапи бійців за один ігровий день.
+   * Правило ADR-0016 «обробник змінює лише власний агрегат» від цього не порушується.
+   */
+  | { t: 'ConditionAdvanced'; day: number; changes: readonly ConditionChange[] }
+  /** Провал форми після бою — окремо від зносу, бо знос незворотний, а форма ні. */
+  | { t: 'FighterConditionDrained'; fighterId: string; rounds: number; headDelta: number }
+  /** Відкриття табору перед призначеним боєм. Інформаційна подія для стайбла гравця. */
+  | { t: 'FighterCampStarted'; fighterId: string; fightId: string; day: number }
   | { t: 'NewsCreated'; key: string; params: Record<string, string | number> }
   | { t: 'RankingsPublished'; day: number; bodyId: string };
 

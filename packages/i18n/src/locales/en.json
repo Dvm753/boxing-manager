@@ -212,5 +212,10 @@
   "cut.right-eye": "right eye",
   "cut.forehead": "forehead",
   "ui.playByPlay": "Play-by-play",
-  "ui.byRound": "By round"
+  "ui.byRound": "By round",
+  "ui.formInWorld": "Condition across the world",
+  "ui.avgSharpness": "Average sharpness",
+  "ui.inCamp": "In camp",
+  "ui.recovering": "Recovering",
+  "ui.daysToFight": "days to the fight"
 }

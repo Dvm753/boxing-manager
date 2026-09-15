@@ -212,5 +212,10 @@
   "cut.right-eye": "œil droit",
   "cut.forehead": "front",
   "ui.playByPlay": "Commentaire du combat",
-  "ui.byRound": "Par round"
+  "ui.byRound": "Par round",
+  "ui.formInWorld": "Forme dans le monde",
+  "ui.avgSharpness": "Acuité moyenne",
+  "ui.inCamp": "En camp",
+  "ui.recovering": "En récupération",
+  "ui.daysToFight": "jours avant le combat"
 }

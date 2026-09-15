@@ -11,7 +11,7 @@ import { simulateFight, EMPTY_PLAN, buildCommentary } from '../packages/engine-f
 import { toSnapshot, makeJudges } from '../packages/sim-cli/src/calibrate.js';
 import { buildWorld, runSeason } from '../packages/sim-cli/src/season.js';
 import { saveCareer, loadCareer, describeSave } from '../packages/session/src/index.js';
-import { buildTierIndex, formatIso, rankingKey } from '../packages/engine-world/src/index.js';
+import { buildTierIndex, formatIso, rankingKey, nextFightIndex } from '../packages/engine-world/src/index.js';
 import {
   createTranslator, LOCALES, LOCALE_NAMES, UNIT_SYSTEMS, THEMES,
   formatLength, formatWeight, formatMoney, renderLine,
@@ -48,10 +48,38 @@ function summarise(world: ReturnType<typeof buildWorld>, fightsHeld: number, byT
       .map((r) => ({ position: r.position, name: names[r.fighterId] ?? '—', score: r.score })),
   }));
 
+  // Форма світу (ADR-0022): видно, що вона справді жива, а не задана при генерації.
+  const schedule = nextFightIndex(world);
+  const all = Object.values(world.fighters);
+  const sharpness = all.map((f) => f.condition.sharpness);
+  const camp = all
+    .filter((f) => {
+      const next = schedule.get(f.id);
+      return next !== undefined && next.day > world.day && next.day - world.day <= 56;
+    })
+    .map((f) => ({
+      name: f.name,
+      sharpness: f.condition.sharpness,
+      freshness: f.condition.freshness,
+      daysToFight: (schedule.get(f.id) as { day: number }).day - world.day,
+    }))
+    .sort((x, y) => x.daysToFight - y.daysToFight)
+    .slice(0, 10);
+
   return {
     day: world.day, date: formatIso(world.day), fightsHeld, byTier, tierCounts: counts,
     injured: Object.values(world.unavailableUntil).filter((d) => d > world.day).length,
     names, news: world.news.slice(-60).reverse(), rankings, rankedClass: shown,
+    condition: {
+      avgSharpness: sharpness.reduce((a, b) => a + b, 0) / (sharpness.length || 1),
+      minSharpness: Math.min(...sharpness),
+      maxSharpness: Math.max(...sharpness),
+      inCamp: all.filter((f) => {
+        const next = schedule.get(f.id);
+        return next !== undefined && next.day > world.day && next.day - world.day <= 56;
+      }).length,
+      camp,
+    },
   };
 }
 

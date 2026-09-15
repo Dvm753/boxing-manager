@@ -212,5 +212,10 @@
   "cut.right-eye": "occhio destro",
   "cut.forehead": "fronte",
   "ui.playByPlay": "Cronaca dell'incontro",
-  "ui.byRound": "Per riprese"
+  "ui.byRound": "Per riprese",
+  "ui.formInWorld": "Condizione nel mondo",
+  "ui.avgSharpness": "Acutezza media",
+  "ui.inCamp": "In ritiro",
+  "ui.recovering": "In recupero",
+  "ui.daysToFight": "giorni all'incontro"
 }

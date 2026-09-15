@@ -3,6 +3,7 @@ import { WEIGHT_CLASSES } from '@bm/data';
 import { dispatch } from './event-bus.js';
 import { HANDLERS } from './handlers.js';
 import { resolveFight } from './resolve-fight.js';
+import { advanceCondition } from './condition.js';
 import { buildTierIndex, fightTier } from './tiers.js';
 import { publishRankings } from './rankings.js';
 import { civilFromDays } from './calendar.js';
@@ -37,12 +38,25 @@ export function advanceDay(
   const day = current.day + 1;
   current = { ...current, day };
 
+  // Форма рухається **до** боїв дня: боєць виходить у ринг у сьогоднішній формі,
+  // а не у вчорашній. Окремий dispatch, бо результат потрібен уже під час симуляції (ADR-0022).
+  const daily = advanceCondition(current, day);
+  const conditionEvents: WorldEvent[] = [
+    { t: 'DayAdvanced', day },
+    { t: 'ConditionAdvanced', day, changes: daily.changes },
+    ...daily.campsOpened.map((camp): WorldEvent => ({
+      t: 'FighterCampStarted', fighterId: camp.fighterId, fightId: camp.fightId, day,
+    })),
+  ];
+  const before = dispatch(current, conditionEvents, HANDLERS);
+  current = before.world;
+
   const due = current.schedule.filter((f) => f.day === day);
   const remaining = current.schedule.filter((f) => f.day !== day);
   current = { ...current, schedule: remaining };
 
   const tierIndex = buildTierIndex(current);
-  const initial: WorldEvent[] = [{ t: 'DayAdvanced', day }];
+  const initial: WorldEvent[] = [];
 
   // Порядок боїв фіксується сортуванням за id: порядок у масиві не є частиною стану.
   for (const fight of [...due].sort((x, y) => (x.id < y.id ? -1 : 1))) {
@@ -79,5 +93,6 @@ export function advanceDay(
     }
   }
 
-  return dispatch(current, initial, HANDLERS);
+  const after = dispatch(current, initial, HANDLERS);
+  return { world: after.world, events: [...before.events, ...after.events] };
 }

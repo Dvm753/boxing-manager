@@ -126,6 +126,10 @@
       </div>
       <div class="stats" id="stats"></div>
       <div class="panel">
+        <h3 style="margin:0 0 8px;font-size:13px" data-i18n="ui.formInWorld">Форма у світі</h3>
+        <div id="formout"><div class="meta" data-i18n="ui.noCareer">—</div></div>
+      </div>
+      <div class="panel">
         <h3 style="margin:0 0 8px;font-size:13px" data-i18n="ui.news">Новини світу</h3>
         <div id="newsout"><div class="meta" data-i18n="ui.noRanking">—</div></div>
       </div>
@@ -205,8 +209,10 @@
           <li class="no">Титулів, контрактів, промоутерів, грошей — фаза 2</li>
           <li class="yes">Збереження й відкриття кар'єри — <code>ADR-0004</code>; три роки з перезапуском перевірено тестом</li>
           <li class="yes">Текстовий репортаж бою шістьма мовами — похідна від <code>EventLog</code>, <code>ADR-0017</code></li>
-          <li class="no">Табору, тренувань, одного стайбла гравця — обсяг фази 1 ще не повний;
-              форма бійця поки статична, це чекає на рішення за <code>ADR-0022</code></li>
+          <li class="yes">Форма жива — <code>ADR-0022</code>: ринг-руст від простою, восьмитижневий табір
+              перед боєм, провал свіжості після бою</li>
+          <li class="no">Рішень гравця в таборі — це Q10, окреме рішення; поки табір іде сам</li>
+          <li class="no">Одного стайбла гравця — обсяг фази 1 ще не повний</li>
           <li class="no">Це не гра, а інструмент спостереження за симуляцією</li>
         </ul>
       </div>
@@ -308,7 +314,7 @@
     });
   }
 
-  function renderAll(){ renderBar(); renderTable(); renderCard(); renderFight(); renderNews(); renderRankings(); }
+  function renderAll(){ renderBar(); renderTable(); renderCard(); renderFight(); renderForm(); renderNews(); renderRankings(); }
 
   function renderBar(){
     document.getElementById('barDate').innerHTML =
@@ -474,9 +480,30 @@
     var btn=document.getElementById('runseason'); btn.disabled=true;
     setTimeout(function(){
       season = BM.simulateSeason(parseInt(document.getElementById('seed').value,10)||0, 1200, 365);
-      btn.disabled=false; renderBar(); renderNews(); renderRankings(); show('world');
+      btn.disabled=false; renderBar(); renderForm(); renderNews(); renderRankings(); show('world');
     }, 20);
   });
+
+  // Форма у світі (ADR-0022): гострота більше не задається при генерації — вона живе.
+  function renderForm(){
+    var el=document.getElementById('formout');
+    if(!season || !season.condition){ el.innerHTML='<div class="meta">'+t('ui.noCareer')+'</div>'; return; }
+    var c=season.condition;
+    var rows=c.camp.map(function(x){
+      return '<div class="newsrow">'+esc(x.name)+' — '+t('ui.sharpness').toLowerCase()+' '+
+        x.sharpness.toFixed(1)+' · '+t('ui.freshness').toLowerCase()+' '+x.freshness.toFixed(1)+
+        ' · '+x.daysToFight+' '+t('ui.daysToFight')+'</div>';
+    }).join('');
+    el.innerHTML =
+      '<div class="stats" style="margin-bottom:10px">'+
+        tile(c.avgSharpness.toFixed(1), t('ui.avgSharpness'))+
+        tile(c.minSharpness.toFixed(1)+'–'+c.maxSharpness.toFixed(1), t('ui.sharpness'))+
+        tile(c.inCamp, t('ui.inCamp'))+
+        tile(season.injured, t('ui.recovering'))+
+      '</div>'+rows+
+      '<div class="note">ADR-0022: гострота падає від простою і зростає у восьмитижневому таборі '+
+      'перед призначеним боєм; свіжість провалюється після бою і повертається з відпочинком.</div>';
+  }
 
   function renderNews(){
     var el=document.getElementById('newsout');

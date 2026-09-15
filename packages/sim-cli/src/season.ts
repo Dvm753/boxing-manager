@@ -2,7 +2,7 @@ import { createRng, deriveSeed, type Fighter } from '@bm/core-model';
 import { generateWorld } from '@bm/data';
 import { advanceDay, rankingKey, type PlayerCommand, type World } from '@bm/engine-world';
 import { makeCandidate, proposeCard, type MatchCandidate } from '@bm/ai';
-import { SANCTIONING_BODIES } from '@bm/data';
+import { CONDITION_TUNING, SANCTIONING_BODIES } from '@bm/data';
 
 /**
  * Прогін сезону. Пари підбирає **пакет `ai`** тим самим розрахунком, яким користуватиметься
@@ -32,6 +32,13 @@ export function buildWorld(seed: number, fighterCount: number, startDay = 20454)
 export const defaultCardSize = (fighterCount: number): number =>
   Math.max(4, Math.round((fighterCount * 2.5) / 52 / 2));
 
+/**
+ * За скільки днів наперед домовляються про бій. Дорівнює вікну табору (ADR-0022) —
+ * і це не збіг: **проміжок між домовленістю і боєм і є табором**. Доки картка
+ * складалася на завтра, табору не існувало фізично, хоч би що казала модель.
+ */
+export const SCHEDULE_LEAD_DAYS = CONDITION_TUNING.sharpness.campWindowDays;
+
 export function runSeason(world: World, days: number, fightsPerCard?: number): SeasonResult {
   const cardSize = fightsPerCard ?? defaultCardSize(Object.keys(world.fighters).length);
   let current = world;
@@ -56,7 +63,15 @@ export function runSeason(world: World, days: number, fightsPerCard?: number): S
         for (const row of table) positionOf.set(`${key}|${row.fighterId}`, row.position);
       }
 
-      const candidates: MatchCandidate[] = Object.values(current.fighters).map((fighter) => makeCandidate(
+      // Боєць, який уже стоїть у календарі, нового бою не бере: домовленість
+      // за вісім тижнів наперед означає, що інакше його можна було б записати двічі.
+      const booked = new Set<string>();
+      for (const fight of current.schedule) { booked.add(fight.aId); booked.add(fight.bId); }
+      const fightDay = current.day + SCHEDULE_LEAD_DAYS;
+
+      const candidates: MatchCandidate[] = Object.values(current.fighters)
+        .filter((fighter) => !booked.has(fighter.id))
+        .map((fighter) => makeCandidate(
         fighter,
         SANCTIONING_BODIES.map((body) => ({
           bodyId: body.id,
@@ -65,7 +80,9 @@ export function runSeason(world: World, days: number, fightsPerCard?: number): S
           ) ?? null,
         })),
         lastFightDay.get(fighter.id) ?? null,
-        (current.unavailableUntil[fighter.id] ?? 0) <= current.day,
+        // Доступність перевіряється на **день бою**, а не на сьогодні: боєць,
+        // який відновлюється ще місяць, до дати бою вже буде готовий.
+        (current.unavailableUntil[fighter.id] ?? 0) <= fightDay,
       ));
 
       const card = proposeCard(candidates, { day: current.day, rng }, { targetBouts: cardSize });
@@ -73,8 +90,8 @@ export function runSeason(world: World, days: number, fightsPerCard?: number): S
         commands.push({
           t: 'scheduleFight',
           fight: {
-            id: `d${current.day + 1}-${i}-${bout.aId.slice(0, 8)}`,
-            day: current.day + 1,
+            id: `d${fightDay}-${i}-${bout.aId.slice(0, 8)}`,
+            day: fightDay,
             aId: bout.aId, bId: bout.bId,
             scheduledRounds: 12,
           },

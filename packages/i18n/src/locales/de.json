@@ -212,5 +212,10 @@
   "cut.right-eye": "rechtes Auge",
   "cut.forehead": "Stirn",
   "ui.playByPlay": "Kampfbericht",
-  "ui.byRound": "Nach Runden"
+  "ui.byRound": "Nach Runden",
+  "ui.formInWorld": "Form in der Welt",
+  "ui.avgSharpness": "Durchschnittliche Schärfe",
+  "ui.inCamp": "Im Trainingslager",
+  "ui.recovering": "In Erholung",
+  "ui.daysToFight": "Tage bis zum Kampf"
 }

@@ -212,5 +212,10 @@
   "cut.right-eye": "ojo derecho",
   "cut.forehead": "frente",
   "ui.playByPlay": "Relato del combate",
-  "ui.byRound": "Por asaltos"
+  "ui.byRound": "Por asaltos",
+  "ui.formInWorld": "Forma en el mundo",
+  "ui.avgSharpness": "Agudeza media",
+  "ui.inCamp": "En campamento",
+  "ui.recovering": "En recuperación",
+  "ui.daysToFight": "días para el combate"
 }
