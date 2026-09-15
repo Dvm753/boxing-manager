@@ -217,5 +217,14 @@
   "ui.avgSharpness": "Durchschnittliche Schärfe",
   "ui.inCamp": "Im Trainingslager",
   "ui.recovering": "In Erholung",
-  "ui.daysToFight": "Tage bis zum Kampf"
+  "ui.daysToFight": "Tage bis zum Kampf",
+  "ui.takeUnderCare": "Unter Vertrag nehmen",
+  "ui.myFighter": "Mein Boxer",
+  "ui.noPlayerFighter": "Wählen Sie einen Boxer aus der Liste und nehmen Sie ihn unter Vertrag.",
+  "ui.readiness": "Bereitschaft",
+  "ui.nextFight": "Nächster Kampf",
+  "ui.campProgress": "Lager absolviert",
+  "ui.lastFights": "Letzte Kämpfe",
+  "ui.unavailableUntil": "Nicht verfügbar bis",
+  "ui.noRankPosition": "außerhalb der Top 15"
 }

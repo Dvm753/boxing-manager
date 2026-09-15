@@ -1,6 +1,6 @@
-import { createRng, deriveSeed, type Fighter } from '@bm/core-model';
-import { generateWorld } from '@bm/data';
+import { createRng, deriveSeed } from '@bm/core-model';
 import { advanceDay, rankingKey, type PlayerCommand, type World } from '@bm/engine-world';
+import { createWorld } from '@bm/session';
 import { makeCandidate, proposeCard, type MatchCandidate } from '@bm/ai';
 import { CONDITION_TUNING, SANCTIONING_BODIES } from '@bm/data';
 
@@ -14,15 +14,8 @@ export interface SeasonResult {
   byTier: Record<number, number>;
 }
 
-export function buildWorld(seed: number, fighterCount: number, startDay = 20454): World {
-  const generated = generateWorld(seed, fighterCount);
-  const fighters: Record<string, Fighter> = {};
-  for (const f of generated.fighters) fighters[f.id] = f;
-  return {
-    day: startDay, seed, fighters, schedule: [], history: {},
-    unavailableUntil: {}, playerFighterIds: [], news: [], rankings: {}, rankingsPublishedOn: 0,
-  };
-}
+/** Створення світу живе в `session` — це частина життєвого циклу кар'єри, не прогону. */
+export const buildWorld = createWorld;
 
 /**
  * Розмір тижневої картки за замовчуванням масштабується зі світом: фіксоване число

@@ -4,6 +4,7 @@
   "include": ["src/**/*"],
   "references": [
     { "path": "../core-model" }, { "path": "../data" }, { "path": "../ai" },
-    { "path": "../engine-fight" }, { "path": "../engine-world" }
+    { "path": "../engine-fight" }, { "path": "../engine-world" },
+    { "path": "../session" }
   ]
 }

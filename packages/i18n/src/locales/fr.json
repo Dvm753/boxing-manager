@@ -217,5 +217,14 @@
   "ui.avgSharpness": "Acuité moyenne",
   "ui.inCamp": "En camp",
   "ui.recovering": "En récupération",
-  "ui.daysToFight": "jours avant le combat"
+  "ui.daysToFight": "jours avant le combat",
+  "ui.takeUnderCare": "Prendre en charge",
+  "ui.myFighter": "Mon boxeur",
+  "ui.noPlayerFighter": "Choisissez un boxeur dans la liste et prenez-le en charge.",
+  "ui.readiness": "Préparation",
+  "ui.nextFight": "Prochain combat",
+  "ui.campProgress": "Camp effectué",
+  "ui.lastFights": "Derniers combats",
+  "ui.unavailableUntil": "Indisponible jusqu'au",
+  "ui.noRankPosition": "hors du top 15"
 }

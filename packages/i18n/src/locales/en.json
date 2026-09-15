@@ -217,5 +217,14 @@
   "ui.avgSharpness": "Average sharpness",
   "ui.inCamp": "In camp",
   "ui.recovering": "Recovering",
-  "ui.daysToFight": "days to the fight"
+  "ui.daysToFight": "days to the fight",
+  "ui.takeUnderCare": "Take under management",
+  "ui.myFighter": "My fighter",
+  "ui.noPlayerFighter": "Pick a fighter from the list and take him under management.",
+  "ui.readiness": "Readiness",
+  "ui.nextFight": "Next fight",
+  "ui.campProgress": "Camp completed",
+  "ui.lastFights": "Recent fights",
+  "ui.unavailableUntil": "Unavailable until",
+  "ui.noRankPosition": "outside the top 15"
 }

@@ -217,5 +217,14 @@
   "ui.avgSharpness": "Acutezza media",
   "ui.inCamp": "In ritiro",
   "ui.recovering": "In recupero",
-  "ui.daysToFight": "giorni all'incontro"
+  "ui.daysToFight": "giorni all'incontro",
+  "ui.takeUnderCare": "Prendere in gestione",
+  "ui.myFighter": "Il mio pugile",
+  "ui.noPlayerFighter": "Scegli un pugile dall'elenco e prendilo in gestione.",
+  "ui.readiness": "Preparazione",
+  "ui.nextFight": "Prossimo incontro",
+  "ui.campProgress": "Ritiro completato",
+  "ui.lastFights": "Ultimi incontri",
+  "ui.unavailableUntil": "Non disponibile fino al",
+  "ui.noRankPosition": "fuori dalla top 15"
 }

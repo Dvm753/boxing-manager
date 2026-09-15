@@ -175,6 +175,10 @@
     <section id="sec-career" hidden>
       <h1 data-i18n="nav.career">Кар'єра</h1>
       <div class="panel">
+        <h3 style="margin:0 0 8px;font-size:13px" data-i18n="ui.myFighter">Мій боєць</h3>
+        <div id="stableout"><div class="meta" data-i18n="ui.noPlayerFighter">—</div></div>
+      </div>
+      <div class="panel">
         <div class="row">
           <button class="act" id="saveCareer" data-i18n="ui.save">Зберегти кар'єру</button>
           <label class="act" for="loadCareer" style="display:inline-block" data-i18n="ui.load">Відкрити кар'єру</label>
@@ -212,7 +216,8 @@
           <li class="yes">Форма жива — <code>ADR-0022</code>: ринг-руст від простою, восьмитижневий табір
               перед боєм, провал свіжості після бою</li>
           <li class="no">Рішень гравця в таборі — це Q10, окреме рішення; поки табір іде сам</li>
-          <li class="no">Одного стайбла гравця — обсяг фази 1 ще не повний</li>
+          <li class="yes">Стайбл гравця: бійця можна взяти під опіку, його бої рахуються повністю</li>
+          <li class="no">Пропозицій боїв і рішень у таборі — це <code>ADR-0023</code>, ще не погоджений</li>
           <li class="no">Це не гра, а інструмент спостереження за симуляцією</li>
         </ul>
       </div>
@@ -234,6 +239,7 @@
   var WC = {}; BM.WEIGHT_CLASSES.forEach(function(w){ WC[w.id] = w; });
 
   var world=null, rows=[], sortKey='avg', sortDir=-1, selId=null, slotA=null, slotB=null, season=null;
+  var myId=null, myName=null;
 
   // ── навігація ───────────────────────────────────────────────────────────
   var section = 'world';
@@ -314,7 +320,7 @@
     });
   }
 
-  function renderAll(){ renderBar(); renderTable(); renderCard(); renderFight(); renderForm(); renderNews(); renderRankings(); }
+  function renderAll(){ renderBar(); renderTable(); renderCard(); renderFight(); renderForm(); renderStable(); renderNews(); renderRankings(); }
 
   function renderBar(){
     document.getElementById('barDate').innerHTML =
@@ -405,7 +411,9 @@
       '</div>'+
       '<div class="row" style="margin-bottom:12px">'+
         '<button class="act" id="pickA">'+t('ui.pickA')+'</button>'+
-        '<button class="act" id="pickB">'+t('ui.pickB')+'</button></div>'+
+        '<button class="act" id="pickB">'+t('ui.pickB')+'</button>'+
+        '<button class="act" id="pickMine"'+(myId===f.id?' disabled':'')+'>'+
+          t('ui.takeUnderCare')+'</button></div>'+
       axesBlock(f)+
       attrBlock(t('attrGroup.technical'), BM.groups.technical, f)+
       attrBlock(t('attrGroup.physical'), BM.groups.physical, f)+
@@ -419,6 +427,9 @@
       '</b> — '+t('ui.rangeNotNumber')+'.<br>'+t('ui.hiddenAttributes')+'</div>';
     document.getElementById('pickA').addEventListener('click', function(){ slotA=f; show('fight'); renderFight(); });
     document.getElementById('pickB').addEventListener('click', function(){ slotB=f; show('fight'); renderFight(); });
+    document.getElementById('pickMine').addEventListener('click', function(){
+      myId=f.id; myName=f.name; season=null; renderCard(); renderStable(); show('career');
+    });
   }
   function gauge(label, v){
     return '<div class="attr"><span class="nm">'+label+'</span>'+
@@ -479,10 +490,55 @@
   document.getElementById('runseason').addEventListener('click', function(){
     var btn=document.getElementById('runseason'); btn.disabled=true;
     setTimeout(function(){
-      season = BM.simulateSeason(parseInt(document.getElementById('seed').value,10)||0, 1200, 365);
-      btn.disabled=false; renderBar(); renderForm(); renderNews(); renderRankings(); show('world');
+      var n = Math.max(50, Math.min(6000, parseInt(document.getElementById('count').value,10)||600));
+      season = BM.simulateSeason(parseInt(document.getElementById('seed').value,10)||0, n, 365, myId);
+      btn.disabled=false; renderBar(); renderForm(); renderStable(); renderNews(); renderRankings();
+      show(myId ? 'career' : 'world');
     }, 20);
   });
+
+  // Стайбл гравця: похідна від світу, нічого не зберігає (ADR-0018 — той самий принцип).
+  function renderStable(){
+    var el=document.getElementById('stableout');
+    if(!myId){ el.innerHTML='<div class="meta">'+t('ui.noPlayerFighter')+'</div>'; return; }
+    if(!season || !season.stable || !season.stable.length){
+      el.innerHTML='<div class="meta">'+esc(myName||'')+' — '+t('ui.noCareer')+'</div>'; return;
+    }
+    var v=season.stable[0];
+    var nf = v.nextFight
+      ? esc(v.nextFight.opponentName)+' · '+v.nextFight.date+' · '+v.nextFight.daysAway+' '+t('ui.daysToFight')+
+        (v.nextFight.campProgress===null ? '' :
+          ' · '+t('ui.campProgress')+' '+Math.round(v.nextFight.campProgress*100)+'%')
+      : '—';
+    var ranks = v.rankings.map(function(r){
+      return t('body.'+r.bodyId)+' '+(r.position===null ? t('ui.noRankPosition') : '#'+r.position);
+    }).join(' · ');
+    var last = v.recentFights.length
+      ? v.recentFights.map(function(f){
+          return '<div class="newsrow">'+f.date+' — '+esc(f.opponentName)+' · '+
+            esc(t('method.'+f.method))+' · '+
+            (f.won===null ? t('ui.draw') : (f.won ? 'W' : 'L'))+' ('+f.endingRound+')</div>';
+        }).join('')
+      : '<div class="meta">—</div>';
+    el.innerHTML =
+      '<h2 style="margin:0 0 2px;font-size:17px">'+esc(v.name)+'</h2>'+
+      '<div class="meta" style="margin-bottom:10px">'+v.age+' '+t('ui.years')+' · '+
+        t('ui.record')+' '+v.record.wins+'–'+v.record.losses+'–'+v.record.draws+
+        ' ('+v.record.knockouts+' KO)'+
+        (v.unavailableUntil>season.day ? ' · '+t('ui.unavailableUntil')+' '+BM.formatIso(v.unavailableUntil) : '')+
+      '</div>'+
+      '<div class="stats" style="margin-bottom:10px">'+
+        tile(Math.round(v.readiness*100)+'%', t('ui.readiness'))+
+        tile(v.condition.sharpness.toFixed(1), t('ui.sharpness'))+
+        tile(v.condition.freshness.toFixed(1), t('ui.freshness'))+
+        tile(v.wear.headTrauma, t('ui.headWear'))+
+      '</div>'+
+      '<div class="meta" style="margin-bottom:6px">'+t('ui.nextFight')+': '+nf+'</div>'+
+      '<div class="meta" style="margin-bottom:6px">'+ranks+'</div>'+
+      '<div class="sub">'+t('ui.lastFights')+'</div>'+last+
+      '<div class="note">Бої підопічного рахуються повністю (рівень 1, ADR-0015). '+
+      'Пропозицій боїв і рішень у таборі ще немає — це ADR-0023, поки не погоджений.</div>';
+  }
 
   // Форма у світі (ADR-0022): гострота більше не задається при генерації — вона живе.
   function renderForm(){

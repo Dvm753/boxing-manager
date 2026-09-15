@@ -10,7 +10,9 @@ import { createRng, deriveSeed } from '../packages/core-model/src/rng.js';
 import { simulateFight, EMPTY_PLAN, buildCommentary } from '../packages/engine-fight/src/index.js';
 import { toSnapshot, makeJudges } from '../packages/sim-cli/src/calibrate.js';
 import { buildWorld, runSeason } from '../packages/sim-cli/src/season.js';
-import { saveCareer, loadCareer, describeSave } from '../packages/session/src/index.js';
+import {
+  saveCareer, loadCareer, describeSave, startCareer, playerStable,
+} from '../packages/session/src/index.js';
 import { buildTierIndex, formatIso, rankingKey, nextFightIndex } from '../packages/engine-world/src/index.js';
 import {
   createTranslator, LOCALES, LOCALE_NAMES, UNIT_SYSTEMS, THEMES,
@@ -70,6 +72,18 @@ function summarise(world: ReturnType<typeof buildWorld>, fightsHeld: number, byT
     day: world.day, date: formatIso(world.day), fightsHeld, byTier, tierCounts: counts,
     injured: Object.values(world.unavailableUntil).filter((d) => d > world.day).length,
     names, news: world.news.slice(-60).reverse(), rankings, rankedClass: shown,
+    stable: playerStable(world).map((view) => ({
+      ...view,
+      name: names[view.fighterId] ?? '—',
+      nextFight: view.nextFight === null ? null : {
+        ...view.nextFight,
+        opponentName: names[view.nextFight.opponentId] ?? '—',
+        date: formatIso(view.nextFight.day),
+      },
+      recentFights: view.recentFights.map((f) => ({
+        ...f, opponentName: names[f.opponentId] ?? '—', date: formatIso(f.day),
+      })),
+    })),
     condition: {
       avgSharpness: sharpness.reduce((a, b) => a + b, 0) / (sharpness.length || 1),
       minSharpness: Math.min(...sharpness),
@@ -83,8 +97,15 @@ function summarise(world: ReturnType<typeof buildWorld>, fightsHeld: number, byT
   };
 }
 
-function simulateSeason(seed: number, fighters: number, days: number): unknown {
-  const { world, fightsHeld, byTier } = runSeason(buildWorld(seed, fighters), days);
+/**
+ * Прогін кар'єри. Світ той самий, що й для перегляду — `createWorld(seed, n)` бере
+ * `generateWorld(seed, n)`, тому id бійця зі списку дійсний і тут. Плутанина двох
+ * різних світів уже одного разу дала неправильний рядок у збереженні.
+ */
+function simulateSeason(seed: number, fighters: number, days: number, playerId?: string): unknown {
+  const base = buildWorld(seed, fighters);
+  const start = playerId ? startCareer(base, playerId) : base;
+  const { world, fightsHeld, byTier } = runSeason(start, days);
   lastWorld = world;
   return summarise(world, fightsHeld, byTier);
 }

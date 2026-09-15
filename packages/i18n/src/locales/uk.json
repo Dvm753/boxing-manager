@@ -217,5 +217,14 @@
   "ui.avgSharpness": "Середня гострота",
   "ui.inCamp": "У таборі",
   "ui.recovering": "Відновлюються",
-  "ui.daysToFight": "днів до бою"
+  "ui.daysToFight": "днів до бою",
+  "ui.takeUnderCare": "Взяти під опіку",
+  "ui.myFighter": "Мій боєць",
+  "ui.noPlayerFighter": "Оберіть бійця у списку і візьміть його під опіку.",
+  "ui.readiness": "Готовність",
+  "ui.nextFight": "Наступний бій",
+  "ui.campProgress": "Табір пройдено",
+  "ui.lastFights": "Останні бої",
+  "ui.unavailableUntil": "Недоступний до",
+  "ui.noRankPosition": "поза топ-15"
 }

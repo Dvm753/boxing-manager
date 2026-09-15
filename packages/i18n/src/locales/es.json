@@ -217,5 +217,14 @@
   "ui.avgSharpness": "Agudeza media",
   "ui.inCamp": "En campamento",
   "ui.recovering": "En recuperación",
-  "ui.daysToFight": "días para el combate"
+  "ui.daysToFight": "días para el combate",
+  "ui.takeUnderCare": "Tomar bajo tutela",
+  "ui.myFighter": "Mi púgil",
+  "ui.noPlayerFighter": "Elija un púgil de la lista y tómelo bajo su tutela.",
+  "ui.readiness": "Preparación",
+  "ui.nextFight": "Próximo combate",
+  "ui.campProgress": "Campamento completado",
+  "ui.lastFights": "Últimos combates",
+  "ui.unavailableUntil": "No disponible hasta",
+  "ui.noRankPosition": "fuera del top 15"
 }
