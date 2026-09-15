@@ -78,7 +78,15 @@ const wearHandler: EventHandler = (event, world) => {
 
   const headTrauma = Math.min(100, fighter.wear.headTrauma + event.headDelta);
   const emit: WorldEvent[] = [];
-  // Важкий бій виводить бійця з ладу; довжина паузи росте зі зносом.
+
+  // Відновлення після КОЖНОГО бою, а не лише після травми. Раніше переможець був
+  // доступний уже наступного тижня, через що найактивніші бійці проводили по 20 боїв
+  // за три роки з проміжком у 7 днів — світ ставав неправдоподібним.
+  // Вісім тижнів базово, довше після важкого бою і зі зростанням зносу.
+  const recovery = 56 + event.rounds * 2 + Math.round(headTrauma * 0.35);
+  emit.push({ t: 'FighterRecovering', fighterId: event.fighterId, daysOut: recovery });
+
+  // Травма — окрема, довша пауза поверх відновлення.
   if (event.headDelta >= 3 && event.rounds >= 8) {
     emit.push({ t: 'FighterInjured', fighterId: event.fighterId, daysOut: 45 + Math.round(headTrauma * 0.8) });
   }
@@ -102,14 +110,14 @@ const wearHandler: EventHandler = (event, world) => {
   };
 };
 
-/** Доступність бійця. */
+/** Доступність бійця. Беремо найпізнішу з причин: травма не скорочує відновлення. */
 const availabilityHandler: EventHandler = (event, world) => {
-  if (event.t !== 'FighterInjured') return unchanged(world);
+  if (event.t !== 'FighterInjured' && event.t !== 'FighterRecovering') return unchanged(world);
+  const until = world.day + event.daysOut;
+  const current = world.unavailableUntil[event.fighterId] ?? 0;
+  if (until <= current) return unchanged(world);
   return {
-    world: {
-      ...world,
-      unavailableUntil: { ...world.unavailableUntil, [event.fighterId]: world.day + event.daysOut },
-    },
+    world: { ...world, unavailableUntil: { ...world.unavailableUntil, [event.fighterId]: until } },
   };
 };
 

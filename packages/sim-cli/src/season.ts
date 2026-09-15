@@ -24,7 +24,16 @@ export function buildWorld(seed: number, fighterCount: number, startDay = 20454)
   };
 }
 
-export function runSeason(world: World, days: number, fightsPerCard = 6): SeasonResult {
+/**
+ * Розмір тижневої картки за замовчуванням масштабується зі світом: фіксоване число
+ * означало б, що у світі з 2000 бійців кожен виходить у ринг раз на шість років.
+ * Орієнтир — 2.5 бої на бійця на рік, тобто ~`n × 2.5 / 52 / 2` пар на тиждень.
+ */
+export const defaultCardSize = (fighterCount: number): number =>
+  Math.max(4, Math.round((fighterCount * 2.5) / 52 / 2));
+
+export function runSeason(world: World, days: number, fightsPerCard?: number): SeasonResult {
+  const cardSize = fightsPerCard ?? defaultCardSize(Object.keys(world.fighters).length);
   let current = world;
   let fightsHeld = 0;
   const byTier: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
@@ -59,7 +68,7 @@ export function runSeason(world: World, days: number, fightsPerCard = 6): Season
         (current.unavailableUntil[fighter.id] ?? 0) <= current.day,
       ));
 
-      const card = proposeCard(candidates, { day: current.day, rng }, { targetBouts: fightsPerCard });
+      const card = proposeCard(candidates, { day: current.day, rng }, { targetBouts: cardSize });
       card.forEach((bout, i) => {
         commands.push({
           t: 'scheduleFight',

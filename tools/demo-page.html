@@ -179,6 +179,7 @@
           <li class="yes">Календар і тік дня на подіях, три рівні деталізації — <code>ADR-0015</code>, <code>ADR-0016</code></li>
           <li class="yes">Рейтинги чотирьох органів — <code>ADR-0018</code></li>
           <li class="yes">Матчмейкінг ШІ: бій виникає лише за згодою обох сторін; перспективного бережуть, джорнимена виставляють</li>
+          <li class="yes">Темп кар'єри: 2.4 бої на рік, не частіше ніж раз на вісім тижнів — як у реальному боксі</li>
           <li class="yes">Шість мов, одиниці, валюта, тема — <code>ADR-0017</code>, <code>ADR-0019</code></li>
           <li class="no">Титулів, контрактів, промоутерів, грошей — фаза 2</li>
           <li class="no">Табору, тренувань, збережень — фаза 1–2</li>
@@ -431,7 +432,7 @@
   document.getElementById('runseason').addEventListener('click', function(){
     var btn=document.getElementById('runseason'); btn.disabled=true;
     setTimeout(function(){
-      season = BM.simulateSeason(parseInt(document.getElementById('seed').value,10)||0, 2000, 365);
+      season = BM.simulateSeason(parseInt(document.getElementById('seed').value,10)||0, 1200, 365);
       btn.disabled=false; renderBar(); renderNews(); renderRankings(); show('world');
     }, 20);
   });

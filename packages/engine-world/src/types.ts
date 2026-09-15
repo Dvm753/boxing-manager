@@ -48,7 +48,7 @@ export interface World {
   fighters: Record<string, Fighter>;
   schedule: readonly ScheduledFight[];
   history: Record<string, readonly FightRecordEntry[]>;
-  /** Дні, до яких боєць недоступний через травму. */
+  /** Дні, до яких боєць недоступний — через відновлення після бою або травму. */
   unavailableUntil: Record<string, number>;
   playerFighterIds: readonly string[];
   news: readonly NewsItem[];
@@ -68,6 +68,11 @@ export type WorldEvent =
   | { t: 'FighterRecordUpdated'; fighterId: string; day: number }
   | { t: 'FighterWearIncreased'; fighterId: string; rounds: number; headDelta: number }
   | { t: 'FighterInjured'; fighterId: string; daysOut: number }
+  /**
+   * Відновлення після будь-якого бою, не лише після травми. Боксер не виходить
+   * у ринг щотижня: між боями табір і відпочинок (`WORLD_ENGINE_SPEC.md`).
+   */
+  | { t: 'FighterRecovering'; fighterId: string; daysOut: number }
   | { t: 'NewsCreated'; key: string; params: Record<string, string | number> }
   | { t: 'RankingsPublished'; day: number; bodyId: string };
 
