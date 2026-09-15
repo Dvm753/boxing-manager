@@ -7,14 +7,14 @@ import {
 } from '../packages/core-model/src/attributes.js';
 import { STYLE_AXES, styleLabel } from '../packages/core-model/src/style.js';
 import { createRng, deriveSeed } from '../packages/core-model/src/rng.js';
-import { simulateFight, EMPTY_PLAN } from '../packages/engine-fight/src/index.js';
+import { simulateFight, EMPTY_PLAN, buildCommentary } from '../packages/engine-fight/src/index.js';
 import { toSnapshot, makeJudges } from '../packages/sim-cli/src/calibrate.js';
 import { buildWorld, runSeason } from '../packages/sim-cli/src/season.js';
 import { saveCareer, loadCareer, describeSave } from '../packages/session/src/index.js';
 import { buildTierIndex, formatIso, rankingKey } from '../packages/engine-world/src/index.js';
 import {
   createTranslator, LOCALES, LOCALE_NAMES, UNIT_SYSTEMS, THEMES,
-  formatLength, formatWeight, formatMoney,
+  formatLength, formatWeight, formatMoney, renderLine,
 } from '../packages/i18n/src/index.js';
 
 // Подання лише відображає результати пакетів (ARCHITECTURE.md, інваріант 1).
@@ -86,6 +86,7 @@ function importCareer(text: string): { ok: true; summary: unknown; season: unkno
 window.BM = {
   generateWorld, WEIGHT_CLASSES, SANCTIONING_BODIES, CURRENCIES, STYLE_AXES, styleLabel,
   runFight, simulateSeason, exportCareer, importCareer, formatIso,
+  buildCommentary, renderLine,
   createTranslator, LOCALES, LOCALE_NAMES, UNIT_SYSTEMS, THEMES,
   formatLength, formatWeight, formatMoney,
   groups: {
