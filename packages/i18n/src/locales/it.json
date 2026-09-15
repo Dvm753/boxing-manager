@@ -173,5 +173,11 @@
   "nav.fighters": "Pugili",
   "nav.fight": "Incontro",
   "nav.rankings": "Classifiche",
-  "nav.settings": "Impostazioni"
+  "nav.settings": "Impostazioni",
+  "ui.save": "Salva carriera",
+  "ui.load": "Apri carriera",
+  "ui.saveInfo": "Salvato: giorno {day}, {fighters} pugili, {fights} incontri",
+  "ui.loadError": "Impossibile aprire il salvataggio: {message}",
+  "ui.noCareer": "Simula prima una stagione.",
+  "nav.career": "Carriera"
 }

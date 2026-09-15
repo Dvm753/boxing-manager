@@ -173,5 +173,11 @@
   "nav.fighters": "Boxer",
   "nav.fight": "Kampf",
   "nav.rankings": "Ranglisten",
-  "nav.settings": "Einstellungen"
+  "nav.settings": "Einstellungen",
+  "ui.save": "Karriere speichern",
+  "ui.load": "Karriere öffnen",
+  "ui.saveInfo": "Gespeichert: Tag {day}, {fighters} Boxer, {fights} Kämpfe",
+  "ui.loadError": "Spielstand konnte nicht geöffnet werden: {message}",
+  "ui.noCareer": "Simulieren Sie zuerst eine Saison.",
+  "nav.career": "Karriere"
 }

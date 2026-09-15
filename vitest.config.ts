@@ -11,6 +11,7 @@ export default defineConfig({
       '@bm/i18n': resolve(__dirname, 'packages/i18n/src/index.ts'),
       '@bm/engine-world': resolve(__dirname, 'packages/engine-world/src/index.ts'),
       '@bm/ai': resolve(__dirname, 'packages/ai/src/index.ts'),
+      '@bm/session': resolve(__dirname, 'packages/session/src/index.ts'),
     },
   },
   test: {

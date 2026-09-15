@@ -173,5 +173,11 @@
   "nav.fighters": "Púgiles",
   "nav.fight": "Combate",
   "nav.rankings": "Clasificaciones",
-  "nav.settings": "Ajustes"
+  "nav.settings": "Ajustes",
+  "ui.save": "Guardar carrera",
+  "ui.load": "Abrir carrera",
+  "ui.saveInfo": "Guardado: día {day}, {fighters} púgiles, {fights} combates",
+  "ui.loadError": "No se pudo abrir la partida: {message}",
+  "ui.noCareer": "Simule una temporada primero.",
+  "nav.career": "Carrera"
 }

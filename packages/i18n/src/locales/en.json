@@ -173,5 +173,11 @@
   "nav.fighters": "Fighters",
   "nav.fight": "Fight",
   "nav.rankings": "Rankings",
-  "nav.settings": "Settings"
+  "nav.settings": "Settings",
+  "ui.save": "Save career",
+  "ui.load": "Open career",
+  "ui.saveInfo": "Saved: day {day}, {fighters} fighters, {fights} fights",
+  "ui.loadError": "Could not open the save: {message}",
+  "ui.noCareer": "Simulate a season first.",
+  "nav.career": "Career"
 }

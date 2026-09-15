@@ -95,6 +95,7 @@
     <button class="navbtn" data-sec="fighters"  data-i18n="nav.fighters">Бійці</button>
     <button class="navbtn" data-sec="fight"     data-i18n="nav.fight">Бій</button>
     <button class="navbtn" data-sec="rankings"  data-i18n="nav.rankings">Рейтинги</button>
+    <button class="navbtn" data-sec="career"    data-i18n="nav.career">Кар'єра</button>
     <button class="navbtn" data-sec="settings"  data-i18n="nav.settings">Налаштування</button>
   </nav>
 
@@ -159,6 +160,18 @@
       <div class="panel"><div class="rankgrid" id="rankout"><div class="meta" data-i18n="ui.noRanking">—</div></div></div>
     </section>
 
+    <section id="sec-career" hidden>
+      <h1 data-i18n="nav.career">Кар'єра</h1>
+      <div class="panel">
+        <div class="row">
+          <button class="act" id="saveCareer" data-i18n="ui.save">Зберегти кар'єру</button>
+          <label class="act" for="loadCareer" style="display:inline-block" data-i18n="ui.load">Відкрити кар'єру</label>
+          <input id="loadCareer" type="file" accept=".json,application/json" style="display:none">
+        </div>
+        <div class="note" id="careerInfo" data-i18n="ui.noCareer">Спершу прорахуйте сезон.</div>
+      </div>
+    </section>
+
     <section id="sec-settings" hidden>
       <h1 data-i18n="nav.settings">Налаштування</h1>
       <div class="panel">
@@ -182,7 +195,8 @@
           <li class="yes">Темп кар'єри: 2.4 бої на рік, не частіше ніж раз на вісім тижнів — як у реальному боксі</li>
           <li class="yes">Шість мов, одиниці, валюта, тема — <code>ADR-0017</code>, <code>ADR-0019</code></li>
           <li class="no">Титулів, контрактів, промоутерів, грошей — фаза 2</li>
-          <li class="no">Табору, тренувань, збережень — фаза 1–2</li>
+          <li class="yes">Збереження й відкриття кар'єри — <code>ADR-0004</code>; три роки з перезапуском перевірено тестом</li>
+          <li class="no">Табору, тренувань, одного стайбла гравця — обсяг фази 1 ще не повний</li>
           <li class="no">Це не гра, а інструмент спостереження за симуляцією</li>
         </ul>
       </div>
@@ -209,7 +223,7 @@
   var section = 'world';
   function show(name){
     section = name;
-    ['world','fighters','fight','rankings','settings'].forEach(function(s){
+    ['world','fighters','fight','rankings','career','settings'].forEach(function(s){
       document.getElementById('sec-'+s).hidden = (s !== name);
     });
     document.querySelectorAll('.navbtn').forEach(function(b){
@@ -467,6 +481,40 @@
         ' · '+esc(t('weightClass.'+season.rankedClass))+'</div>'+list+'</div>';
     }).join('');
   }
+
+  // ── збереження ──────────────────────────────────────────────────────────
+  function careerInfo(msg){ document.getElementById('careerInfo').textContent = msg; }
+
+  document.getElementById('saveCareer').addEventListener('click', function(){
+    var out = BM.exportCareer();
+    if(!out){ careerInfo(t('ui.noCareer')); return; }
+    var text = out.text;
+    var blob = new Blob([text], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'boxing-manager-career.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+    var kb = (text.length/1024).toFixed(0);
+    careerInfo(t('ui.saveInfo', { day: season ? season.date : '—',
+      fighters: out.summary.fighterCount, fights: out.summary.fightsRecorded }) + '  ·  ' + kb + ' KB');
+  });
+
+  document.getElementById('loadCareer').addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var res = BM.importCareer(String(reader.result));
+      if(!res.ok){ careerInfo(t('ui.loadError', { message: res.message })); return; }
+      season = res.season;
+      careerInfo(t('ui.saveInfo', { day: season.date, fighters: res.summary.fighterCount,
+        fights: res.summary.fightsRecorded }));
+      renderBar(); renderNews(); renderRankings();
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
 
   show('world');
   build();

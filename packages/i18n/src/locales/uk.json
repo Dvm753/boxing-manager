@@ -173,5 +173,11 @@
   "nav.fighters": "Бійці",
   "nav.fight": "Бій",
   "nav.rankings": "Рейтинги",
-  "nav.settings": "Налаштування"
+  "nav.settings": "Налаштування",
+  "ui.save": "Зберегти кар'єру",
+  "ui.load": "Відкрити кар'єру",
+  "ui.saveInfo": "Збережено: день {day}, {fighters} бійців, {fights} боїв",
+  "ui.loadError": "Не вдалося відкрити сейв: {message}",
+  "ui.noCareer": "Спершу прорахуйте сезон.",
+  "nav.career": "Кар'єра"
 }
