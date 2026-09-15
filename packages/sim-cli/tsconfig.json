@@ -3,7 +3,7 @@
   "compilerOptions": { "outDir": "dist", "rootDir": "src", "composite": true },
   "include": ["src/**/*"],
   "references": [
-    { "path": "../core-model" }, { "path": "../data" },
+    { "path": "../core-model" }, { "path": "../data" }, { "path": "../ai" },
     { "path": "../engine-fight" }, { "path": "../engine-world" }
   ]
 }

@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/core-model" },
     { "path": "packages/data" },
+    { "path": "packages/ai" },
     { "path": "packages/engine-fight" },
     { "path": "packages/engine-world" },
     { "path": "packages/sim-cli" },
