@@ -7,13 +7,19 @@ import {
 } from '../packages/data/src/camp-tuning.js';
 import { FIGHT_PLANS } from '../packages/data/src/fight-plans.js';
 import {
+  STRATEGY_PLANS, STRATEGY_SCENARIOS, STRATEGY_PLAN_SUITABILITY, STRATEGY_SCENARIO_AXES,
+  strategyBaseAxes, type StrategyPlanId, type StrategyScenarioId,
+} from '../packages/data/src/strategy-plans.js';
+import {
   TECHNICAL_ATTRIBUTES, PHYSICAL_ATTRIBUTES, MENTAL_ATTRIBUTES,
 } from '../packages/core-model/src/attributes.js';
 import { STYLE_AXES, styleLabel } from '../packages/core-model/src/style.js';
 import { createRng, deriveSeed } from '../packages/core-model/src/rng.js';
 import {
-  simulateFight, EMPTY_PLAN, buildCommentary, buildRoundStats, totalStats, accuracy,
+  simulateFight, simulateFightSteps, buildCommentary, buildRoundStats, totalStats, accuracy,
+  proposeCornerAdvice, type FightStepUpdate,
 } from '../packages/engine-fight/src/index.js';
+import { coachSuitability } from '../packages/ai/src/index.js';
 import { toSnapshot, makeJudges } from '../packages/sim-cli/src/calibrate.js';
 import { buildWorld, runSeason } from '../packages/sim-cli/src/season.js';
 import {
@@ -30,18 +36,81 @@ declare global {
   interface Window { BM: unknown }
 }
 
+const SCHEDULED_ROUNDS = 12;
+
+interface StrategyChoice { plan: StrategyPlanId; scenario: StrategyScenarioId }
+
+/** Межа поради кута (ADR-0028) — магнітуда осей, яку дозволяє сам обраний сценарій. */
+function scenarioBounds(scenario: StrategyScenarioId): { maxDelta: Record<string, number> } {
+  const maxDelta: Record<string, number> = {};
+  for (const [axis, delta] of Object.entries(STRATEGY_SCENARIO_AXES[scenario])) maxDelta[axis] = Math.abs(delta);
+  return { maxDelta };
+}
+
 /**
  * Показовий бій. `take` — номер прогону: **той самий seed і ті самі бійці дають той самий
  * бій, але інший вечір — інший бій**. Це і є детермінізм ADR-0003: відтворюваність за
  * однакових входів, а не наперед визначений результат.
+ *
+ * `strategyA`/`strategyB` — план і сценарій A/B/C, обрані перед боєм (ADR-0028); задають
+ * `FightPlan.baseAxes` і лишаються дійсними всю решту бою. Коли `advisorOn`, тренер
+ * додатково пропонує обмежені поради між раундами через `simulateFightSteps` — приймаються
+ * автоматично (демо не має паузи, це рівень перевірки механізму, не фінальний екран бою).
  */
-function runFight(a: unknown, b: unknown, seed: number, take = 0): unknown {
+function runFight(
+  a: unknown, b: unknown, seed: number, take: number,
+  strategyA: StrategyChoice, strategyB: StrategyChoice, advisorOn: boolean,
+): unknown {
   const rng = createRng(deriveSeed(seed, `demo/fight/${take}`));
   const context = {
-    scheduledRounds: 12, judges: makeJudges(rng),
-    planA: EMPTY_PLAN, planB: EMPTY_PLAN, threeKnockdownRule: false,
+    scheduledRounds: SCHEDULED_ROUNDS, judges: makeJudges(rng),
+    planA: { baseAxes: strategyBaseAxes(strategyA.plan, strategyA.scenario), blocks: [] },
+    planB: { baseAxes: strategyBaseAxes(strategyB.plan, strategyB.scenario), blocks: [] },
+    threeKnockdownRule: false,
   };
-  return simulateFight(toSnapshot(a as never), toSnapshot(b as never), context as never, rng);
+  const snapA = toSnapshot(a as never);
+  const snapB = toSnapshot(b as never);
+
+  if (!advisorOn) {
+    return { ...simulateFight(snapA, snapB, context as never, rng), advice: [] };
+  }
+
+  const boundsA = scenarioBounds(strategyA.scenario);
+  const boundsB = scenarioBounds(strategyB.scenario);
+  const advice: { round: number; by: 'a' | 'b'; axisAdjustments: Record<string, number> }[] = [];
+
+  const steps = simulateFightSteps(snapA, snapB, context as never, rng);
+  let outcome = null as ReturnType<typeof simulateFight> | null;
+  for (let step = steps.next(); ; ) {
+    if (step.done) { outcome = step.value; break; }
+    const boundary = step.value;
+    const rounds = buildRoundStats(boundary.eventLog);
+    const last = rounds[rounds.length - 1];
+    const update: FightStepUpdate = {};
+    if (last && last.staminaA !== null && last.staminaB !== null) {
+      const fromRound = boundary.round + 1;
+      const toRound = Math.min(SCHEDULED_ROUNDS, fromRound + 1);
+      const adviceA = proposeCornerAdvice(last.a, last.b, last.staminaA, boundsA, fromRound, toRound);
+      if (adviceA) { update.a = adviceA; advice.push({ round: boundary.round, by: 'a', axisAdjustments: adviceA.axisAdjustments }); }
+      const adviceB = proposeCornerAdvice(last.b, last.a, last.staminaB, boundsB, fromRound, toRound);
+      if (adviceB) { update.b = adviceB; advice.push({ round: boundary.round, by: 'b', axisAdjustments: adviceB.axisAdjustments }); }
+    }
+    step = steps.next(Object.keys(update).length ? update : undefined);
+  }
+  return { ...outcome, advice };
+}
+
+/** Придатність усіх трьох планів × трьох сценаріїв бійцю — текст поради тренера (ADR-0028). */
+function coachAdvice(f: unknown, seed: number, coachSkill: number): unknown {
+  const fighter = f as never;
+  const rng = createRng(deriveSeed(seed, 'demo/coach'));
+  const rows: { plan: StrategyPlanId; scenario: StrategyScenarioId; suitability: number }[] = [];
+  for (const plan of STRATEGY_PLANS) {
+    for (const scenario of STRATEGY_SCENARIOS) {
+      rows.push({ plan, scenario, suitability: coachSuitability(fighter, plan, scenario, coachSkill, rng) });
+    }
+  }
+  return rows;
 }
 
 /** Останній прорахований світ — щоб його можна було зберегти у файл. */
@@ -164,6 +233,7 @@ function importCareer(text: string): { ok: true; summary: unknown; season: unkno
 window.BM = {
   generateWorld, WEIGHT_CLASSES, SANCTIONING_BODIES, CURRENCIES, STYLE_AXES, styleLabel,
   CAMP_PHASES, CAMP_LOADS, CAMP_FOCUSES_BY_PHASE, FIGHT_PLANS,
+  STRATEGY_PLANS, STRATEGY_SCENARIOS, STRATEGY_PLAN_SUITABILITY, coachAdvice,
   runFight, simulateSeason, exportCareer, importCareer, formatIso,
   buildCommentary, buildRoundStats, totalStats, accuracy, renderLine,
   createTranslator, LOCALES, LOCALE_NAMES, UNIT_SYSTEMS, THEMES,

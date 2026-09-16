@@ -2,8 +2,8 @@ import { normalize, type Rng, type StyleAxes } from '@bm/core-model';
 import { scoreRound, resolveDecision, type RoundPerception } from './judging.js';
 import { TUNING } from './tuning.js';
 import type {
-  FightContext, FightEvent, FightOutcome, FightPlan, FightResult, FightStats,
-  FighterSide, FighterSnapshot, FoulKind, LandQuality, Position, PunchType,
+  FightContext, FightEvent, FightOutcome, FightPlan, FightResult, FightStats, FightStepUpdate,
+  FighterSide, FighterSnapshot, FoulKind, LandQuality, Position, PunchType, RoundBoundary,
 } from './types.js';
 
 const emptyStats = (): FightStats => ({
@@ -131,13 +131,20 @@ function nextPosition(a: FighterState, b: FighterState, current: Position, rng: 
 }
 
 /**
- * Симуляція одного бою. Чиста функція: без I/O, годинника і глобального стану.
- * Той самий seed і ті самі входи дають байт-ідентичний лог (ADR-0003).
+ * Покроковий прогін бою (ADR-0028): генератор, що віддає межу після кожного `roundEnd`
+ * і опційно приймає `FightStepUpdate` — пораду кута на наступні раунди — через
+ * `.next(update)`. Без переданих оновлень дає той самий `EventLog`, що й один виклик
+ * `simulateFight`, біт у біт: `yield`/`.next()` — це лише пауза керування, RNG вона
+ * не витрачає (перевіряється тестом-дзеркалом до `determinism.test.ts`).
  */
-export function simulateFight(
+export function* simulateFightSteps(
   a: FighterSnapshot, b: FighterSnapshot, context: FightContext, rng: Rng,
-): FightOutcome {
+): Generator<RoundBoundary, FightOutcome, FightStepUpdate | undefined> {
   const events: FightEvent[] = [];
+  // Локальні змінні плану: порада кута додає блок сюди, а не в `context`, який
+  // належить викликачу і не мутується.
+  let planA = context.planA;
+  let planB = context.planB;
   const mk = (snap: FighterSnapshot, side: FighterSide): FighterState => ({
     side, snap, axes: snap.styleAxes,
     form: 0.90 + rng.next() * 0.18 + (snap.sharpness / 100) * 0.06
@@ -155,8 +162,8 @@ export function simulateFight(
 
   for (let round = 1; round <= context.scheduledRounds && !finish; round++) {
     events.push({ t: 'roundStart', round });
-    fa.axes = axesForRound(a.styleAxes, context.planA, round);
-    fb.axes = axesForRound(b.styleAxes, context.planB, round);
+    fa.axes = axesForRound(a.styleAxes, planA, round);
+    fb.axes = axesForRound(b.styleAxes, planB, round);
     fa.knockdownsThisRound = 0;
     fb.knockdownsThisRound = 0;
 
@@ -337,6 +344,14 @@ export function simulateFight(
         finish = { winner: other.side, reason: 'rtd', round, second: 180 };
       }
     }
+
+    // Межа раунду (ADR-0028): пауза для поради кута. Немає сенсу пропонувати пораду
+    // на раунд, якого вже не буде — тому лише коли бій ще продовжується.
+    if (!finish) {
+      const update = yield { round, eventLog: events };
+      if (update?.a) { planA = { ...planA, blocks: [...planA.blocks, update.a] }; events.push({ t: 'planChange', round: round + 1, second: 0, by: 'a' }); }
+      if (update?.b) { planB = { ...planB, blocks: [...planB.blocks, update.b] }; events.push({ t: 'planChange', round: round + 1, second: 0, by: 'b' }); }
+    }
   }
 
   let result: FightResult;
@@ -365,4 +380,19 @@ export function simulateFight(
   }
 
   return { result, eventLog: events };
+}
+
+/**
+ * Симуляція одного бою в один виклик. Чиста функція: без I/O, годинника і глобального
+ * стану. Той самий seed і ті самі входи дають байт-ідентичний лог (ADR-0003). Тонка
+ * обгортка над `simulateFightSteps`, що жодного разу не передає `update` — тому дає
+ * той самий результат, що й до появи покрокового режиму (ADR-0028).
+ */
+export function simulateFight(
+  a: FighterSnapshot, b: FighterSnapshot, context: FightContext, rng: Rng,
+): FightOutcome {
+  const steps = simulateFightSteps(a, b, context, rng);
+  let step = steps.next();
+  while (!step.done) step = steps.next();
+  return step.value;
 }

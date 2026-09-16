@@ -7,5 +7,6 @@ export * from './currencies.js';
 export * from './condition-tuning.js';
 export * from './camp-tuning.js';
 export * from './fight-plans.js';
+export * from './strategy-plans.js';
 export * from './matchmaking-tuning.js';
 export * from './fighter-generator.js';

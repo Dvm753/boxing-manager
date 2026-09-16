@@ -269,6 +269,13 @@
 
   var world=null, rows=[], sortKey='avg', sortDir=-1, selId=null, slotA=null, slotB=null, season=null;
   var myIds=[], take=0, fightRound=null;
+  // Стратегічний план і сценарій A/B/C перед боєм (ADR-0028) — окремо для кожної сторони.
+  var strategy = {
+    a: { plan:'distance', scenario:'B' },
+    b: { plan:'distance', scenario:'B' },
+  };
+  var coachSkill = 12;
+  var advisorOn = true;
   var MAX_STABLE=3;
   // Політика гравця: те, що в грі буде вибором щотижня, тут задається наперед (ADR-0023).
   var policy = { camp: { base:{focus:'general',load:'normal'}, work:{focus:'technique',load:'normal'},
@@ -481,9 +488,52 @@
         (slotA ? '<br>A: '+esc(slotA.name) : '')+(slotB ? '<br>B: '+esc(slotB.name) : '')+'</div>';
       return;
     }
-    var out = BM.runFight(slotA, slotB, parseInt(document.getElementById('seed').value,10)||0, take);
+    var seedVal = parseInt(document.getElementById('seed').value,10)||0;
+    var out = BM.runFight(slotA, slotB, seedVal, take, strategy.a, strategy.b, advisorOn);
     var r = out.result;
     var names = { a: slotA.name, b: slotB.name };
+
+    // План і сценарій A/B/C перед боєм (ADR-0028) — окремо для кожної сторони,
+    // з придатністю за порадою тренера (шум залежить від coachSkill).
+    function strategySide(side, fighter){
+      var advice = BM.coachAdvice(fighter, seedVal, coachSkill);
+      var sel = strategy[side];
+      var grid = BM.STRATEGY_PLANS.map(function(plan){
+        return '<tr><td class="meta" style="font-size:11.5px">'+esc(t('strategyPlan.'+plan))+'</td>'+
+          BM.STRATEGY_SCENARIOS.map(function(sc){
+            var row = advice.filter(function(x){ return x.plan===plan && x.scenario===sc; })[0];
+            var cur = (plan===sel.plan && sc===sel.scenario);
+            return '<td class="'+(cur?'mono':'meta')+'" style="text-align:center;font-size:11.5px'+
+              (cur?';font-weight:700':'')+'">'+row.suitability+'</td>';
+          }).join('')+'</tr>';
+      }).join('');
+      var planOpts = BM.STRATEGY_PLANS.map(function(p){
+        return '<option value="'+p+'"'+(p===sel.plan?' selected':'')+'>'+esc(t('strategyPlan.'+p))+'</option>';
+      }).join('');
+      var scOpts = BM.STRATEGY_SCENARIOS.map(function(sc){
+        return '<option value="'+sc+'"'+(sc===sel.scenario?' selected':'')+'>'+sc+' — '+esc(t('strategyScenario.'+sc))+'</option>';
+      }).join('');
+      return '<div style="flex:1;min-width:220px">'+
+        '<div class="meta" style="margin-bottom:4px">'+esc(fighter.name)+'</div>'+
+        '<div class="row" style="gap:6px;margin-bottom:6px">'+
+          '<select data-strategy-side="'+side+'" data-strategy-kind="plan">'+planOpts+'</select>'+
+          '<select data-strategy-side="'+side+'" data-strategy-kind="scenario">'+scOpts+'</select>'+
+        '</div>'+
+        '<table class="cmp" style="width:100%"><thead><tr><td></td><td class="meta" style="text-align:center;font-size:11px">A</td>'+
+        '<td class="meta" style="text-align:center;font-size:11px">B</td><td class="meta" style="text-align:center;font-size:11px">C</td></tr></thead>'+
+        '<tbody>'+grid+'</tbody></table></div>';
+    }
+    var strategyPanel =
+      '<div class="sub">'+t('ui.strategyPlan')+' / '+t('ui.strategyScenario')+'</div>'+
+      '<div class="row" style="gap:16px;align-items:flex-start;margin-bottom:8px">'+
+        strategySide('a', slotA)+strategySide('b', slotB)+
+      '</div>'+
+      '<div class="row" style="gap:14px;align-items:center;margin-bottom:10px">'+
+        '<label class="meta" style="display:flex;gap:6px;align-items:center">'+t('ui.coachSkill')+
+          '<input id="coachSkillInput" type="number" min="1" max="20" value="'+coachSkill+'" style="width:52px"></label>'+
+        '<label class="meta" style="display:flex;gap:6px;align-items:center">'+
+          '<input id="advisorToggle" type="checkbox"'+(advisorOn?' checked':'')+'>'+t('ui.advisorToggle')+'</label>'+
+      '</div>';
 
     // Уся статистика — **похідна від EventLog** (ADR-0003): рушій нічого не додає.
     var rounds = BM.buildRoundStats(out.eventLog);
@@ -555,9 +605,23 @@
       return '<div class="card1">'+t('ui.round').slice(0,1).toUpperCase()+x.round+' '+label+'</div>';
     }).join('');
 
+    // Поради кута, застосовані під час бою (ADR-0028) — видно, коли й кому, і що саме.
+    var adviceList = !advisorOn ? '' :
+      '<div class="sub">'+t('ui.cornerAdviceGiven')+'</div><div class="pbp">'+
+      (out.advice.length===0 ? '<div class="ln dim">'+t('ui.noCornerAdvice')+'</div>' :
+        out.advice.map(function(x){
+          var axes = Object.keys(x.axisAdjustments).map(function(ax){
+            var d = x.axisAdjustments[ax];
+            return esc(t('axis.'+ax))+' '+(d>0?'+':'')+d;
+          }).join(', ');
+          return '<div class="ln">'+t('ui.round')+' '+x.round+': '+esc(names[x.by])+' — '+axes+'</div>';
+        }).join('')) +
+      '</div>';
+
     var verdict = r.winner===null ? t('ui.draw') : (r.winner==='a'?esc(slotA.name):esc(slotB.name));
     el.innerHTML =
       '<div class="meta" style="margin-bottom:6px">A: '+esc(slotA.name)+'  ·  B: '+esc(slotB.name)+'</div>'+
+      strategyPanel+
       '<div style="font-size:17px;font-weight:650;margin-bottom:4px">'+esc(t('method.'+r.method))+' — '+verdict+'</div>'+
       '<div class="meta" style="margin-bottom:10px">'+t('ui.endingRound')+' '+r.endingRound+
         (r.scorecards.length ? ' · '+t('ui.scorecards')+' '+r.scorecards.map(function(c){return c[0]+'–'+c[1];}).join(', ') : '')+'</div>'+
@@ -565,6 +629,7 @@
       '<div class="sub">'+(fightRound===null ? t('ui.wholeFight') : t('ui.round')+' '+fightRound)+'</div>'+
       stats+
       '<div class="sub">'+t('ui.roundCards')+'</div><div class="cards">'+cards+'</div>'+
+      adviceList+
       '<div class="sub">'+(fightRound===null ? t('ui.playByPlay') : t('ui.keyEvents'))+'</div>'+
       '<div class="pbp">'+pbp+'</div>'+
       '<div class="row" style="margin-top:12px">'+
@@ -579,6 +644,23 @@
         fightRound = v==='all' ? null : parseInt(v,10);
         renderFight();
       });
+    });
+    el.querySelectorAll('[data-strategy-side]').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        var side = sel.getAttribute('data-strategy-side');
+        var kind = sel.getAttribute('data-strategy-kind');
+        strategy[side][kind] = sel.value;
+        renderFight();
+      });
+    });
+    document.getElementById('coachSkillInput').addEventListener('change', function(e){
+      var v = parseInt(e.target.value,10);
+      coachSkill = isNaN(v) ? coachSkill : Math.max(1, Math.min(20, v));
+      renderFight();
+    });
+    document.getElementById('advisorToggle').addEventListener('change', function(e){
+      advisorOn = e.target.checked;
+      renderFight();
     });
   }
 

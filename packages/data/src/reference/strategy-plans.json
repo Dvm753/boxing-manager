@@ -1,0 +1,27 @@
+{
+  "_note": "Три стратегічні плани на бій і сценарії A/B/C (ADR-0028). План — зсув осей, той самий контракт, що й fight-plans.json; сценарій — додатковий зсув інтенсивності, що складається з планом у baseAxes. Це НЕ заміна fight-plans.json/ADR-0023 (табірне рішення за тижні до бою) — окреме, пізніше рішення безпосередньо перед боєм. `suitability` — ваги атрибутів для поради тренера (ADR-0028); на сам бій не впливають, лише на текст рекомендації.",
+
+  "plans": {
+    "distance": {
+      "_note": "Дистанція: контроль, безпека, перемога по очках.",
+      "axes": { "preferredRange": -3, "pressure": -2, "counterTendency": 2 },
+      "suitability": ["footwork", "distanceControl", "defensiveDiscipline"]
+    },
+    "pressure": {
+      "_note": "Тиск: зближення, обсяг, зношування суперника.",
+      "axes": { "preferredRange": 3, "pressure": 4, "punchVolume": 2 },
+      "suitability": ["workRate", "stamina", "aggression"]
+    },
+    "counter": {
+      "_note": "Контратака: ініціативу віддає, б'є на зустріч.",
+      "axes": { "counterTendency": 4, "risk": -1, "punchVolume": -2 },
+      "suitability": ["anticipation", "timing", "counterPunching"]
+    }
+  },
+
+  "scenarios": {
+    "A": { "_note": "Обережний: берегти витривалість, доїхати до картки.", "axes": { "risk": -2, "punchVolume": -1 } },
+    "B": { "_note": "Збалансований: план як є, без додаткового зсуву.", "axes": {} },
+    "C": { "_note": "Форсований: тиснути на зупинку, вищий об'єм і ризик.", "axes": { "risk": 2, "punchVolume": 2, "bodyAttack": 1 } }
+  }
+}

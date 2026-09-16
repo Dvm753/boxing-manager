@@ -129,3 +129,24 @@ export interface FightOutcome {
   result: FightResult;
   eventLog: readonly FightEvent[];
 }
+
+/**
+ * Стан на межі раундів (ADR-0028). `simulateFightSteps` віддає це після кожного
+ * `roundEnd`, поки бій не завершився. `eventLog` — повний лог станом на цю мить,
+ * той самий масив, що піде в підсумковий `FightOutcome`.
+ */
+export interface RoundBoundary {
+  round: number;
+  eventLog: readonly FightEvent[];
+}
+
+/**
+ * Порада кута між раундами (ADR-0028): невеликий, обмежений у часі зсув осей —
+ * той самий контракт, що й `RoundBlockPlan` (ADR-0014), нічого нового в рушії.
+ * Рушій не знає про «сценарії» чи «придатність» — це відповідальність того, хто
+ * породжує пораду (`packages/ai`), рушій лише додає блок до плану активної сторони.
+ */
+export interface FightStepUpdate {
+  a?: RoundBlockPlan;
+  b?: RoundBlockPlan;
+}

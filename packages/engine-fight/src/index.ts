@@ -4,3 +4,4 @@ export * from './judging.js';
 export * from './engine.js';
 export * from './commentary.js';
 export * from './round-stats.js';
+export * from './corner-advice.js';
