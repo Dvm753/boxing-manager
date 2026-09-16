@@ -1,4 +1,5 @@
 import { normalize, type Fighter } from '@bm/core-model';
+import { seekingAllowance, seekingBonus } from '@bm/data';
 import type { MatchCandidate, OfferAssessment } from './types.js';
 
 /**
@@ -29,17 +30,33 @@ export function makeCandidate(
   rankings: MatchCandidate['rankings'],
   lastFightDay: number | null,
   available: boolean,
+  /** Скільки днів боєць існує у світі (ADR-0024). Нуль — світ щойно створено. */
+  daysSinceStart = 0,
 ): MatchCandidate {
   const values = Object.values(fighter.attributes);
   let sum = 0;
   for (const v of values) sum += v;
   const positions = rankings.map((r) => r.position).filter((p): p is number => p !== null);
   return {
-    fighter, rankings, lastFightDay, available,
+    fighter, rankings, lastFightDay, available, daysSinceStart,
     ability: sum / values.length,
     bestPosition: positions.length === 0 ? 30 : Math.min(...positions),
   };
 }
+
+/**
+ * Скільки днів «простою» приписується бійцю, який ще не бився в симуляції.
+ * Це не магічне число, а припущення про минуле: у згенерованого бійця вже є рекорд.
+ */
+const ASSUMED_IDLE_AT_START = 240;
+
+/**
+ * «Про мене забули» — інший годинник, ніж «я голодний до бою» (ADR-0024).
+ * Рахується **від початку симуляції**: на старті світу ніхто ще не забутий, бо світ
+ * не мав можливості дати бій. Інакше надбавку отримали б усі одразу.
+ */
+export const daysUnseen = (candidate: MatchCandidate, day: number): number =>
+  candidate.lastFightDay === null ? candidate.daysSinceStart : day - candidate.lastFightDay;
 
 /**
  * Ваги за стадією кар'єри. Перспективного бережуть, претендент мусить ризикувати,
@@ -74,8 +91,25 @@ export function assessOffer(
   // Ризик: програти нижчому за рейтингом дорожче.
   const risk = Math.max(0, opponentPos - selfPos) / 12 + (selfPos <= 15 ? 0.7 : 0.2);
 
-  const daysIdle = self.lastFightDay === null ? 240 : day - self.lastFightDay;
+  // Згенерований боєць уже має рекорд, тобто бився до початку світу: без цього припущення
+  // на першому тижні ніхто б не був голодним до бою і світ стартував би майже порожнім.
+  const daysIdle = self.lastFightDay === null ? ASSUMED_IDLE_AT_START : day - self.lastFightDay;
   const inactivityPressure = Math.min(1.5, daysIdle / 180);
+
+  /**
+   * «Про мене забули» — інший годинник, ніж «я голодний до бою» (ADR-0024).
+   * Він рахується **від початку симуляції**: на старті світу ніхто ще не забутий,
+   * бо світ не мав можливості дати бій. Інакше надбавку отримали б усі одразу,
+   * і вона перестала б щось означати.
+   */
+  const seeking = seekingBonus(daysUnseen(self, day));
+
+  /**
+   * Другий бік тієї самої монети: якщо забутий **суперник**, менеджер стає поступливішим.
+   * Без цього правило не працює для сильного бійця, якого ніхто не хоче: сам він згоден
+   * на будь-кого, але згоди другої сторони немає — і бою немає.
+   */
+  const allowance = seekingAllowance(seekingBonus(daysUnseen(opponent, day)));
 
   // Стиль і вік дають невеликий зсув: незручний суперник менш привабливий.
   const styleFriction = Math.abs(
@@ -86,11 +120,12 @@ export function assessOffer(
     reward * weights.reward
     - risk * weights.risk * (1 - winChance)
     + inactivityPressure * 0.9
+    + seeking
     - styleFriction;
 
   const accept = self.available && opponent.available
-    && winChance >= weights.minWinChance - inactivityPressure * 0.12
+    && winChance >= weights.minWinChance - inactivityPressure * 0.12 - allowance
     && score > 0;
 
-  return { winChance, reward, risk, inactivityPressure, score, accept };
+  return { winChance, reward, risk, inactivityPressure, seeking, score, accept };
 }

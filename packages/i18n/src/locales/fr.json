@@ -259,5 +259,8 @@
   "plan.boxing": "Boxer à distance",
   "plan.pressure": "Mettre la pression",
   "plan.counter": "Contre-attaquer",
-  "plan.bodywork": "Travailler au corps"
+  "plan.bodywork": "Travailler au corps",
+  "ui.fightAgain": "Rejouer le combat",
+  "ui.takeNumber": "soirée n°",
+  "ui.determinismNote": "ADR-0003 : même seed, mêmes boxeurs, même forme, même plan et mêmes consignes du coin donnent le même combat — c'est de la reproductibilité, pas un résultat écrit d'avance. Changez la forme, le plan ou la soirée et le combat change : la chance du cogneur reste une chance."
 }

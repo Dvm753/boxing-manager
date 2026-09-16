@@ -221,7 +221,8 @@
           <li class="yes">Форма жива — <code>ADR-0022</code>: ринг-руст від простою, восьмитижневий табір
               перед боєм, провал свіжості після бою</li>
           <li class="no">Рішень гравця в таборі — це Q10, окреме рішення; поки табір іде сам</li>
-          <li class="yes">Стайбл гравця: бійця можна взяти під опіку, його бої рахуються повністю</li>
+          <li class="yes">Стайбл гравця — <code>ADR-0024</code>: до трьох бійців; боєць, про якого забули,
+              шукає бій сам, тож порожніх років більше немає</li>
           <li class="yes">Тиждень гравця — <code>ADR-0023</code>: пропозиції боїв, три фази табору, план на бій</li>
           <li class="no">Щоденної гри з паузою на кожне рішення — план табору тут задається наперед</li>
           <li class="no">Це не гра, а інструмент спостереження за симуляцією</li>
@@ -245,7 +246,8 @@
   var WC = {}; BM.WEIGHT_CLASSES.forEach(function(w){ WC[w.id] = w; });
 
   var world=null, rows=[], sortKey='avg', sortDir=-1, selId=null, slotA=null, slotB=null, season=null;
-  var myId=null, myName=null;
+  var myIds=[], take=0;
+  var MAX_STABLE=3;
   // Політика гравця: те, що в грі буде вибором щотижня, тут задається наперед (ADR-0023).
   var policy = { camp: { base:{focus:'general',load:'normal'}, work:{focus:'technique',load:'normal'},
                          taper:{focus:'peak',load:'light'} }, plan: 'balanced' };
@@ -334,8 +336,11 @@
   function renderBar(){
     document.getElementById('barDate').innerHTML =
       season ? '<b>'+season.date+'</b>' : '<span class="meta">'+t('ui.day')+' —</span>';
-    document.getElementById('barCount').innerHTML = world
-      ? world.fighters.length+' '+t('ui.fighters').toLowerCase() : '';
+    // Після прогону показуємо світ **сезону**, а не світ для перегляду: до версії 1.3
+    // це були різні світи, і рядок збивав з пантелику.
+    var shown = season ? season.fighters : (world ? world.fighters.length : null);
+    document.getElementById('barCount').innerHTML = shown === null
+      ? '' : shown+' '+t('ui.fighters').toLowerCase();
   }
 
   function renderTable(){
@@ -421,7 +426,8 @@
       '<div class="row" style="margin-bottom:12px">'+
         '<button class="act" id="pickA">'+t('ui.pickA')+'</button>'+
         '<button class="act" id="pickB">'+t('ui.pickB')+'</button>'+
-        '<button class="act" id="pickMine"'+(myId===f.id?' disabled':'')+'>'+
+        '<button class="act" id="pickMine"'+
+          (myIds.indexOf(f.id)>=0 || myIds.length>=MAX_STABLE ? ' disabled' : '')+'>'+
           t('ui.takeUnderCare')+'</button></div>'+
       axesBlock(f)+
       attrBlock(t('attrGroup.technical'), BM.groups.technical, f)+
@@ -437,7 +443,8 @@
     document.getElementById('pickA').addEventListener('click', function(){ slotA=f; show('fight'); renderFight(); });
     document.getElementById('pickB').addEventListener('click', function(){ slotB=f; show('fight'); renderFight(); });
     document.getElementById('pickMine').addEventListener('click', function(){
-      myId=f.id; myName=f.name; season=null; renderCard(); renderStable(); show('career');
+      if(myIds.indexOf(f.id)<0 && myIds.length<MAX_STABLE) myIds.push(f.id);
+      season=null; renderCard(); renderStable(); show('career');
     });
   }
   function gauge(label, v){
@@ -452,7 +459,7 @@
         (slotA ? '<br>A: '+esc(slotA.name) : '')+(slotB ? '<br>B: '+esc(slotB.name) : '')+'</div>';
       return;
     }
-    var out = BM.runFight(slotA, slotB, parseInt(document.getElementById('seed').value,10)||0);
+    var out = BM.runFight(slotA, slotB, parseInt(document.getElementById('seed').value,10)||0, take);
     var r = out.result, per = {};
     out.eventLog.forEach(function(e){
       if(e.t!=='punch') return;
@@ -491,8 +498,10 @@
         '</th><th>B '+t('ui.landedThrown')+'</th><th>'+t('ui.knockdownsShort')+'</th></tr></thead><tbody>'+trs+'</tbody></table></div>'+
       '<div class="sub">'+t('ui.playByPlay')+'</div>'+
       '<div class="pbp">'+pbp+'</div>'+
-      '<div class="note">ADR-0003: той самий seed і ті самі бійці завжди дають той самий бій. '+
-      'Репортаж — похідна від EventLog: він не зберігається і відтворюється з логу будь-якою мовою.</div>';
+      '<div class="row" style="margin-top:12px">'+
+        '<button class="act" id="againBtn">'+t('ui.fightAgain')+'</button>'+
+        '<span class="meta">'+t('ui.takeNumber')+' '+(take+1)+'</span></div>'+
+      '<div class="note">'+t('ui.determinismNote')+'</div>';
   }
 
   // ── сезон ───────────────────────────────────────────────────────────────
@@ -501,10 +510,16 @@
     setTimeout(function(){
       var n = Math.max(50, Math.min(6000, parseInt(document.getElementById('count').value,10)||600));
       season = BM.simulateSeason(parseInt(document.getElementById('seed').value,10)||0, n, 365,
-        myId, myId ? policy : undefined);
+        myIds, myIds.length ? policy : undefined);
       btn.disabled=false; renderBar(); renderForm(); renderStable(); renderNews(); renderRankings();
-      show(myId ? 'career' : 'world');
+      show(myIds.length ? 'career' : 'world');
     }, 20);
+  });
+
+  // «Ще раз» — той самий бій іншого вечора. Показує, що результат не визначений наперед:
+  // змінюється лише потік випадковості, бійці й налаштування ті самі.
+  document.addEventListener('click', function(e){
+    if(e.target && e.target.id === 'againBtn'){ take++; renderFight(); }
   });
 
   // План табору: три фази × (фокус + навантаження) + план на бій — рівно те,
@@ -540,11 +555,14 @@
   // Стайбл гравця: похідна від світу, нічого не зберігає (ADR-0018 — той самий принцип).
   function renderStable(){
     var el=document.getElementById('stableout');
-    if(!myId){ el.innerHTML='<div class="meta">'+t('ui.noPlayerFighter')+'</div>'; return; }
+    if(!myIds.length){ el.innerHTML='<div class="meta">'+t('ui.noPlayerFighter')+'</div>'; return; }
     if(!season || !season.stable || !season.stable.length){
-      el.innerHTML='<div class="meta">'+esc(myName||'')+' — '+t('ui.noCareer')+'</div>'; return;
+      el.innerHTML='<div class="meta">'+myIds.length+' · '+t('ui.noCareer')+'</div>'; return;
     }
-    var v=season.stable[0];
+    el.innerHTML = season.stable.map(stableCard).join('<hr style="border:0;border-top:1px solid var(--line);margin:14px 0">');
+  }
+
+  function stableCard(v){
     var nf = v.nextFight
       ? esc(v.nextFight.opponentName)+' · '+v.nextFight.date+' · '+v.nextFight.daysAway+' '+t('ui.daysToFight')+
         (v.nextFight.campProgress===null ? '' :
@@ -560,8 +578,7 @@
             (f.won===null ? t('ui.draw') : (f.won ? 'W' : 'L'))+' ('+f.endingRound+')</div>';
         }).join('')
       : '<div class="meta">—</div>';
-    el.innerHTML =
-      '<h2 style="margin:0 0 2px;font-size:17px">'+esc(v.name)+'</h2>'+
+    return '<h2 style="margin:0 0 2px;font-size:17px">'+esc(v.name)+'</h2>'+
       '<div class="meta" style="margin-bottom:10px">'+v.age+' '+t('ui.years')+' · '+
         t('ui.record')+' '+v.record.wins+'–'+v.record.losses+'–'+v.record.draws+
         ' ('+v.record.knockouts+' KO)'+

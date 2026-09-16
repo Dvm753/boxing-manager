@@ -259,5 +259,8 @@
   "plan.boxing": "Boxare in allungo",
   "plan.pressure": "Fare pressione",
   "plan.counter": "Contrattaccare",
-  "plan.bodywork": "Lavorare al corpo"
+  "plan.bodywork": "Lavorare al corpo",
+  "ui.fightAgain": "Combatti di nuovo",
+  "ui.takeNumber": "serata n.",
+  "ui.determinismNote": "ADR-0003: stesso seed, stessi pugili, stessa condizione, stesso piano e stesse indicazioni dall'angolo danno lo stesso incontro — questa è riproducibilità, non un risultato deciso in anticipo. Cambia la condizione, il piano o la serata e l'incontro cambia: la chance del picchiatore resta una chance."
 }

@@ -259,5 +259,8 @@
   "plan.boxing": "Auf Distanz boxen",
   "plan.pressure": "Druck machen",
   "plan.counter": "Kontern",
-  "plan.bodywork": "Auf den Körper gehen"
+  "plan.bodywork": "Auf den Körper gehen",
+  "ui.fightAgain": "Nochmal kämpfen",
+  "ui.takeNumber": "Abend Nr.",
+  "ui.determinismNote": "ADR-0003: derselbe Seed, dieselben Boxer, dieselbe Form, derselbe Plan und dieselben Anweisungen aus der Ecke ergeben denselben Kampf — das ist Reproduzierbarkeit, kein vorherbestimmtes Ergebnis. Ändern Sie Form, Plan oder Abend, und der Kampf ändert sich: Die Chance des Punchers bleibt eine Chance."
 }

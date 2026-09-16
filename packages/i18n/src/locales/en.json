@@ -259,5 +259,8 @@
   "plan.boxing": "Box on the outside",
   "plan.pressure": "Apply pressure",
   "plan.counter": "Counter-punch",
-  "plan.bodywork": "Work the body"
+  "plan.bodywork": "Work the body",
+  "ui.fightAgain": "Fight again",
+  "ui.takeNumber": "night no.",
+  "ui.determinismNote": "ADR-0003: the same seed, the same fighters, the same condition, plan and corner calls reproduce the same fight — that is reproducibility, not a predetermined result. Change the condition, the plan or the night and the fight changes: a puncher's chance stays a chance."
 }

@@ -25,6 +25,11 @@ export interface MatchCandidate {
   rankings: readonly RankedPosition[];
   /** Номер дня останнього бою; `null` — не бився. */
   lastFightDay: number | null;
+  /**
+   * Скільки днів боєць існує у світі. Потрібен для надбавки за простій (ADR-0024):
+   * дебютант без жодного бою теж має шукати бій, а не чекати вічно.
+   */
+  daysSinceStart: number;
   /** Чи доступний зараз (не травмований). */
   available: boolean;
 }
@@ -44,6 +49,8 @@ export interface OfferAssessment {
   risk: number;
   /** Тиск простою: чим довше без бою, тим охочіше погоджується. */
   inactivityPressure: number;
+  /** Надбавка «шукає бій сам» (ADR-0024); 0, поки боєць у нормальному ритмі. */
+  seeking: number;
   /** Підсумкова привабливість. Додатна — згоден. */
   score: number;
   accept: boolean;

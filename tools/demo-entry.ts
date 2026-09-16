@@ -28,8 +28,13 @@ declare global {
   interface Window { BM: unknown }
 }
 
-function runFight(a: unknown, b: unknown, seed: number): unknown {
-  const rng = createRng(deriveSeed(seed, 'demo/fight'));
+/**
+ * Показовий бій. `take` — номер прогону: **той самий seed і ті самі бійці дають той самий
+ * бій, але інший вечір — інший бій**. Це і є детермінізм ADR-0003: відтворюваність за
+ * однакових входів, а не наперед визначений результат.
+ */
+function runFight(a: unknown, b: unknown, seed: number, take = 0): unknown {
+  const rng = createRng(deriveSeed(seed, `demo/fight/${take}`));
   const context = {
     scheduledRounds: 12, judges: makeJudges(rng),
     planA: EMPTY_PLAN, planB: EMPTY_PLAN, threeKnockdownRule: false,
@@ -74,6 +79,7 @@ function summarise(world: ReturnType<typeof buildWorld>, fightsHeld: number, byT
 
   return {
     day: world.day, date: formatIso(world.day), fightsHeld, byTier, tierCounts: counts,
+    fighters: Object.keys(world.fighters).length,
     injured: Object.values(world.unavailableUntil).filter((d) => d > world.day).length,
     names, news: world.news.slice(-60).reverse(), rankings, rankedClass: shown,
     stable: playerStable(world).map((view) => ({
@@ -107,10 +113,12 @@ function summarise(world: ReturnType<typeof buildWorld>, fightsHeld: number, byT
  * різних світів уже одного разу дала неправильний рядок у збереженні.
  */
 function simulateSeason(
-  seed: number, fighters: number, days: number, playerId?: string, policy?: unknown,
+  seed: number, fighters: number, days: number, playerIds?: readonly string[], policy?: unknown,
 ): unknown {
   const base = buildWorld(seed, fighters);
-  const start = playerId ? startCareer(base, playerId) : base;
+  // Стайбл, а не один боєць (ADR-0024): рішень стає стільки, скільки підопічних.
+  let start = base;
+  for (const id of playerIds ?? []) start = startCareer(start, id);
   const season = runSeason(start, days, undefined, policy as never);
   lastWorld = season.world;
   return {

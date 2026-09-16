@@ -259,5 +259,8 @@
   "plan.boxing": "Boxear a distancia",
   "plan.pressure": "Presionar",
   "plan.counter": "Contragolpear",
-  "plan.bodywork": "Castigar el cuerpo"
+  "plan.bodywork": "Castigar el cuerpo",
+  "ui.fightAgain": "Pelear otra vez",
+  "ui.takeNumber": "velada n.º",
+  "ui.determinismNote": "ADR-0003: la misma semilla, los mismos púgiles, la misma forma, el mismo plan y las mismas indicaciones de la esquina dan el mismo combate: eso es reproducibilidad, no un resultado predeterminado. Cambie la forma, el plan o la velada y el combate cambia: la oportunidad del pegador sigue siendo una oportunidad."
 }

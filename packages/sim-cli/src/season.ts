@@ -38,6 +38,8 @@ export function runSeason(
   world: World, days: number, fightsPerCard?: number, policy?: PlayerPolicy,
 ): SeasonResult {
   const cardSize = fightsPerCard ?? defaultCardSize(Object.keys(world.fighters).length);
+  /** Від якого дня рахується «скільки боєць існує у світі» (ADR-0024). */
+  const startedOn = world.day;
   let current = world;
   let fightsHeld = 0;
   let decisionsMade = 0;
@@ -89,6 +91,8 @@ export function runSeason(
         // Доступність перевіряється на **день бою**, а не на сьогодні: боєць,
         // який відновлюється ще місяць, до дати бою вже буде готовий.
         (current.unavailableUntil[fighter.id] ?? 0) <= fightDay,
+        // Скільки днів боєць існує в симуляції — годинник «про мене забули» (ADR-0024).
+        current.day - startedOn,
       ));
 
       const card = proposeCard(candidates, { day: current.day, rng }, { targetBouts: cardSize });
