@@ -262,5 +262,15 @@
   "plan.bodywork": "Lavorare al corpo",
   "ui.fightAgain": "Combatti di nuovo",
   "ui.takeNumber": "serata n.",
-  "ui.determinismNote": "ADR-0003: stesso seed, stessi pugili, stessa condizione, stesso piano e stesse indicazioni dall'angolo danno lo stesso incontro — questa è riproducibilità, non un risultato deciso in anticipo. Cambia la condizione, il piano o la serata e l'incontro cambia: la chance del picchiatore resta una chance."
+  "ui.determinismNote": "ADR-0003: stesso seed, stessi pugili, stessa condizione, stesso piano e stesse indicazioni dall'angolo danno lo stesso incontro — questa è riproducibilità, non un risultato deciso in anticipo. Cambia la condizione, il piano o la serata e l'incontro cambia: la chance del picchiatore resta una chance.",
+  "ui.wholeFight": "Intero incontro",
+  "ui.accuracy": "Precisione",
+  "ui.powerShots": "Colpi potenti",
+  "ui.knockdowns": "Atterramenti",
+  "ui.cuts": "Tagli",
+  "ui.stunned": "Volte stordito",
+  "ui.punches": "Colpi",
+  "ui.roundCards": "Cartellini delle riprese",
+  "ui.keyEvents": "Momenti chiave",
+  "ui.judgeCardNote": "Il registro dell'incontro riporta il cartellino di un giudice su tre: una perdita di dati a livello di contratto (Q31). Il cronometro interno, la fatica, il danno e i falli non sono ancora modellati (Q29, Q30)."
 }

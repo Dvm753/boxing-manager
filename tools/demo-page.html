@@ -88,6 +88,20 @@
   .pbp .hd{margin-top:9px;font-weight:650;color:var(--accent2);border-bottom:0}
   .pbp .big{color:var(--accent);font-weight:600}
   .pbp .dim{color:var(--dim);font-size:12.5px}
+  .rtabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .rtab{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:7px;
+    padding:5px 11px;font:inherit;font-size:13px;cursor:pointer}
+  .rtab:hover{color:var(--ink)}
+  .rtab[aria-current="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .rtab.kd{border-color:var(--accent)}
+  .cmp{width:100%;border-collapse:collapse;font-size:14px}
+  .cmp td{padding:6px 10px;border-bottom:1px solid var(--line)}
+  .cmp td.l{text-align:right;font-family:ui-monospace,monospace;color:var(--accent2);width:32%}
+  .cmp td.r{text-align:left;font-family:ui-monospace,monospace;color:var(--accent);width:32%}
+  .cmp td.m{text-align:center;color:var(--dim);font-size:12.5px}
+  .cards{display:flex;flex-wrap:wrap;gap:6px}
+  .card1{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:6px 10px;
+    font-size:12.5px;font-family:ui-monospace,monospace}
   .rankgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
   ul.scope{margin:0;padding-left:20px;color:var(--dim);font-size:13.5px}
   ul.scope li{margin-bottom:3px}
@@ -218,6 +232,8 @@
           <li class="no">Титулів, контрактів, промоутерів, грошей — фаза 2</li>
           <li class="yes">Збереження й відкриття кар'єри — <code>ADR-0004</code>; три роки з перезапуском перевірено тестом</li>
           <li class="yes">Текстовий репортаж бою шістьма мовами — похідна від <code>EventLog</code>, <code>ADR-0017</code></li>
+          <li class="yes">Перемикач раундів зі статистикою і подіями кожного раунду — теж похідна від логу</li>
+          <li class="no">Часу події в раунді, втоми, шкоди і фолів — <code>Q29</code>–<code>Q31</code>, потребує змін у рушії</li>
           <li class="yes">Форма жива — <code>ADR-0022</code>: ринг-руст від простою, восьмитижневий табір
               перед боєм, провал свіжості після бою</li>
           <li class="no">Рішень гравця в таборі — це Q10, окреме рішення; поки табір іде сам</li>
@@ -246,7 +262,7 @@
   var WC = {}; BM.WEIGHT_CLASSES.forEach(function(w){ WC[w.id] = w; });
 
   var world=null, rows=[], sortKey='avg', sortDir=-1, selId=null, slotA=null, slotB=null, season=null;
-  var myIds=[], take=0;
+  var myIds=[], take=0, fightRound=null;
   var MAX_STABLE=3;
   // Політика гравця: те, що в грі буде вибором щотижня, тут задається наперед (ADR-0023).
   var policy = { camp: { base:{focus:'general',load:'normal'}, work:{focus:'technique',load:'normal'},
@@ -440,8 +456,8 @@
       '</div>'+
       '<div class="note">'+t('ui.potentialRange')+': <b>'+f.potentialRange[0]+'–'+f.potentialRange[1]+
       '</b> — '+t('ui.rangeNotNumber')+'.<br>'+t('ui.hiddenAttributes')+'</div>';
-    document.getElementById('pickA').addEventListener('click', function(){ slotA=f; show('fight'); renderFight(); });
-    document.getElementById('pickB').addEventListener('click', function(){ slotB=f; show('fight'); renderFight(); });
+    document.getElementById('pickA').addEventListener('click', function(){ slotA=f; fightRound=null; show('fight'); renderFight(); });
+    document.getElementById('pickB').addEventListener('click', function(){ slotB=f; fightRound=null; show('fight'); renderFight(); });
     document.getElementById('pickMine').addEventListener('click', function(){
       if(myIds.indexOf(f.id)<0 && myIds.length<MAX_STABLE) myIds.push(f.id);
       season=null; renderCard(); renderStable(); show('career');
@@ -460,66 +476,84 @@
       return;
     }
     var out = BM.runFight(slotA, slotB, parseInt(document.getElementById('seed').value,10)||0, take);
-    var r = out.result, per = {};
-    out.eventLog.forEach(function(e){
-      if(e.t!=='punch') return;
-      var k=e.round+'|'+e.by; per[k]=per[k]||{th:0,ld:0}; per[k].th++;
-      if(e.quality!=='miss'&&e.quality!=='block') per[k].ld++;
-    });
-    var kd = out.eventLog.filter(function(e){return e.t==='knockdown';});
-    var trs='';
-    for(var i=1;i<=r.endingRound;i++){
-      var ra=per[i+'|a']||{th:0,ld:0}, rb=per[i+'|b']||{th:0,ld:0};
-      var k=kd.filter(function(e){return e.round===i;}).map(function(e){return e.by==='a'?'A↓B':'B↓A';}).join(' ');
-      trs+='<tr><td class="num">'+i+'</td><td class="num">'+ra.ld+'/'+ra.th+'</td>'+
-           '<td class="num">'+rb.ld+'/'+rb.th+'</td><td>'+k+'</td></tr>';
-    }
-    var verdict = r.winner===null ? t('ui.draw') : (r.winner==='a'?esc(slotA.name):esc(slotB.name));
-
-    // Текстовий репортаж — похідна від EventLog, а не окреме джерело правди.
-    // Рушій повертає ключі перекладу; мову підставляє подання (ADR-0017).
+    var r = out.result;
     var names = { a: slotA.name, b: slotB.name };
-    var pbp = BM.buildCommentary(out.eventLog).map(function(l){
-      var cls = 'ln';
-      if(l.key === 'commentary.roundStart') cls += ' hd';
-      else if(l.key === 'commentary.knockdown' || l.key.indexOf('commentary.stoppage.') === 0
-              || l.key.indexOf('commentary.decision.') === 0) cls += ' big';
-      else if(l.key === 'commentary.roundSummary' || l.key === 'commentary.roundEnd') cls += ' dim';
-      return '<div class="'+cls+'">'+esc(BM.renderLine(T, l, names))+'</div>';
+
+    // Уся статистика — **похідна від EventLog** (ADR-0003): рушій нічого не додає.
+    var rounds = BM.buildRoundStats(out.eventLog);
+    if(fightRound !== null && fightRound > rounds.length) fightRound = null;
+    var sel = fightRound === null ? BM.totalStats(rounds) : rounds[fightRound-1];
+
+    function row(label, av, bv){
+      return '<tr><td class="l">'+av+'</td><td class="m">'+esc(label)+'</td><td class="r">'+bv+'</td></tr>';
+    }
+    var stats =
+      '<table class="cmp">'+
+      row(t('ui.punches'), sel.a.landed+'/'+sel.a.thrown, sel.b.landed+'/'+sel.b.thrown)+
+      row(t('ui.accuracy'), BM.accuracy(sel.a).toFixed(0)+'%', BM.accuracy(sel.b).toFixed(0)+'%')+
+      row(t('ui.powerShots'), sel.a.power, sel.b.power)+
+      row(t('ui.knockdowns'), sel.a.knockdowns, sel.b.knockdowns)+
+      row(t('ui.cuts'), sel.a.cuts, sel.b.cuts)+
+      row(t('ui.stunned'), sel.a.stuns, sel.b.stuns)+
+      '</table>';
+
+    // Вкладки раундів: нокдаун у раунді підсвічується — саме його шукають очима.
+    var tabs = '<button class="rtab" data-r="all" aria-current="'+(fightRound===null)+'">'+
+      t('ui.wholeFight')+'</button>'+
+      rounds.map(function(x){
+        var kd = (x.a.knockdowns + x.b.knockdowns) > 0;
+        return '<button class="rtab'+(kd?' kd':'')+'" data-r="'+x.round+'" aria-current="'+
+          (fightRound===x.round)+'">'+t('ui.round').slice(0,1).toUpperCase()+x.round+'</button>';
+      }).join('');
+
+    var lines = BM.buildCommentary(out.eventLog).filter(function(l){
+      return fightRound === null ? true : l.round === fightRound;
+    });
+    var pbp = lines.map(function(l){
+      var cls='ln';
+      if(l.key==='commentary.roundStart') cls+=' hd';
+      else if(l.key==='commentary.knockdown' || l.key.indexOf('commentary.stoppage.')===0
+              || l.key.indexOf('commentary.decision.')===0) cls+=' big';
+      else if(l.key==='commentary.roundSummary' || l.key==='commentary.roundEnd') cls+=' dim';
+      return '<div class="'+cls+'">'+esc(BM.renderLine(T,l,names))+'</div>';
     }).join('');
 
+    var cards = rounds.map(function(x){
+      return '<div class="card1">'+t('ui.round').slice(0,1).toUpperCase()+x.round+' '+
+        (x.scoreA===null ? '—' : x.scoreA+'–'+x.scoreB)+'</div>';
+    }).join('');
+
+    var verdict = r.winner===null ? t('ui.draw') : (r.winner==='a'?esc(slotA.name):esc(slotB.name));
     el.innerHTML =
       '<div class="meta" style="margin-bottom:6px">A: '+esc(slotA.name)+'  ·  B: '+esc(slotB.name)+'</div>'+
       '<div style="font-size:17px;font-weight:650;margin-bottom:4px">'+esc(t('method.'+r.method))+' — '+verdict+'</div>'+
       '<div class="meta" style="margin-bottom:10px">'+t('ui.endingRound')+' '+r.endingRound+
         (r.scorecards.length ? ' · '+t('ui.scorecards')+' '+r.scorecards.map(function(c){return c[0]+'–'+c[1];}).join(', ') : '')+'</div>'+
-      '<div class="sub">'+t('ui.byRound')+'</div>'+
-      '<div class="tablewrap"><table><thead><tr><th>'+t('ui.round')+'</th><th>A '+t('ui.landedThrown')+
-        '</th><th>B '+t('ui.landedThrown')+'</th><th>'+t('ui.knockdownsShort')+'</th></tr></thead><tbody>'+trs+'</tbody></table></div>'+
-      '<div class="sub">'+t('ui.playByPlay')+'</div>'+
+      '<div class="rtabs">'+tabs+'</div>'+
+      '<div class="sub">'+(fightRound===null ? t('ui.wholeFight') : t('ui.round')+' '+fightRound)+'</div>'+
+      stats+
+      '<div class="sub">'+t('ui.roundCards')+'</div><div class="cards">'+cards+'</div>'+
+      '<div class="sub">'+(fightRound===null ? t('ui.playByPlay') : t('ui.keyEvents'))+'</div>'+
       '<div class="pbp">'+pbp+'</div>'+
       '<div class="row" style="margin-top:12px">'+
         '<button class="act" id="againBtn">'+t('ui.fightAgain')+'</button>'+
         '<span class="meta">'+t('ui.takeNumber')+' '+(take+1)+'</span></div>'+
-      '<div class="note">'+t('ui.determinismNote')+'</div>';
-  }
+      '<div class="note">'+t('ui.determinismNote')+'</div>'+
+      '<div class="note">'+t('ui.judgeCardNote')+'</div>';
 
-  // ── сезон ───────────────────────────────────────────────────────────────
-  document.getElementById('runseason').addEventListener('click', function(){
-    var btn=document.getElementById('runseason'); btn.disabled=true;
-    setTimeout(function(){
-      var n = Math.max(50, Math.min(6000, parseInt(document.getElementById('count').value,10)||600));
-      season = BM.simulateSeason(parseInt(document.getElementById('seed').value,10)||0, n, 365,
-        myIds, myIds.length ? policy : undefined);
-      btn.disabled=false; renderBar(); renderForm(); renderStable(); renderNews(); renderRankings();
-      show(myIds.length ? 'career' : 'world');
-    }, 20);
-  });
+    el.querySelectorAll('.rtab').forEach(function(b){
+      b.addEventListener('click', function(){
+        var v=b.getAttribute('data-r');
+        fightRound = v==='all' ? null : parseInt(v,10);
+        renderFight();
+      });
+    });
+  }
 
   // «Ще раз» — той самий бій іншого вечора. Показує, що результат не визначений наперед:
   // змінюється лише потік випадковості, бійці й налаштування ті самі.
   document.addEventListener('click', function(e){
-    if(e.target && e.target.id === 'againBtn'){ take++; renderFight(); }
+    if(e.target && e.target.id === 'againBtn'){ take++; fightRound=null; renderFight(); }
   });
 
   // План табору: три фази × (фокус + навантаження) + план на бій — рівно те,

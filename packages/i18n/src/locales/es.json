@@ -262,5 +262,15 @@
   "plan.bodywork": "Castigar el cuerpo",
   "ui.fightAgain": "Pelear otra vez",
   "ui.takeNumber": "velada n.º",
-  "ui.determinismNote": "ADR-0003: la misma semilla, los mismos púgiles, la misma forma, el mismo plan y las mismas indicaciones de la esquina dan el mismo combate: eso es reproducibilidad, no un resultado predeterminado. Cambie la forma, el plan o la velada y el combate cambia: la oportunidad del pegador sigue siendo una oportunidad."
+  "ui.determinismNote": "ADR-0003: la misma semilla, los mismos púgiles, la misma forma, el mismo plan y las mismas indicaciones de la esquina dan el mismo combate: eso es reproducibilidad, no un resultado predeterminado. Cambie la forma, el plan o la velada y el combate cambia: la oportunidad del pegador sigue siendo una oportunidad.",
+  "ui.wholeFight": "Combate completo",
+  "ui.accuracy": "Precisión",
+  "ui.powerShots": "Golpes de poder",
+  "ui.knockdowns": "Derribos",
+  "ui.cuts": "Cortes",
+  "ui.stunned": "Veces aturdido",
+  "ui.punches": "Golpes",
+  "ui.roundCards": "Tarjetas por asalto",
+  "ui.keyEvents": "Momentos clave",
+  "ui.judgeCardNote": "El registro del combate incluye la tarjeta de un juez de tres: una pérdida de datos a nivel de contrato (Q31). El cronómetro interno, la fatiga, el daño y las faltas aún no están modelados (Q29, Q30)."
 }

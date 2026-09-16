@@ -262,5 +262,15 @@
   "plan.bodywork": "Auf den Körper gehen",
   "ui.fightAgain": "Nochmal kämpfen",
   "ui.takeNumber": "Abend Nr.",
-  "ui.determinismNote": "ADR-0003: derselbe Seed, dieselben Boxer, dieselbe Form, derselbe Plan und dieselben Anweisungen aus der Ecke ergeben denselben Kampf — das ist Reproduzierbarkeit, kein vorherbestimmtes Ergebnis. Ändern Sie Form, Plan oder Abend, und der Kampf ändert sich: Die Chance des Punchers bleibt eine Chance."
+  "ui.determinismNote": "ADR-0003: derselbe Seed, dieselben Boxer, dieselbe Form, derselbe Plan und dieselben Anweisungen aus der Ecke ergeben denselben Kampf — das ist Reproduzierbarkeit, kein vorherbestimmtes Ergebnis. Ändern Sie Form, Plan oder Abend, und der Kampf ändert sich: Die Chance des Punchers bleibt eine Chance.",
+  "ui.wholeFight": "Ganzer Kampf",
+  "ui.accuracy": "Trefferquote",
+  "ui.powerShots": "Wuchtige Treffer",
+  "ui.knockdowns": "Niederschläge",
+  "ui.cuts": "Platzwunden",
+  "ui.stunned": "Angeschlagen",
+  "ui.punches": "Schläge",
+  "ui.roundCards": "Rundenkarten",
+  "ui.keyEvents": "Schlüsselmomente",
+  "ui.judgeCardNote": "Das Kampfprotokoll enthält nur die Karte eines von drei Punktrichtern — ein Datenverlust auf Vertragsebene (Q31). Rundenzeit, Ermüdung, Schaden und Fouls sind noch nicht modelliert (Q29, Q30)."
 }

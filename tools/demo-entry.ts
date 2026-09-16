@@ -11,7 +11,9 @@ import {
 } from '../packages/core-model/src/attributes.js';
 import { STYLE_AXES, styleLabel } from '../packages/core-model/src/style.js';
 import { createRng, deriveSeed } from '../packages/core-model/src/rng.js';
-import { simulateFight, EMPTY_PLAN, buildCommentary } from '../packages/engine-fight/src/index.js';
+import {
+  simulateFight, EMPTY_PLAN, buildCommentary, buildRoundStats, totalStats, accuracy,
+} from '../packages/engine-fight/src/index.js';
 import { toSnapshot, makeJudges } from '../packages/sim-cli/src/calibrate.js';
 import { buildWorld, runSeason } from '../packages/sim-cli/src/season.js';
 import {
@@ -153,7 +155,7 @@ window.BM = {
   generateWorld, WEIGHT_CLASSES, SANCTIONING_BODIES, CURRENCIES, STYLE_AXES, styleLabel,
   CAMP_PHASES, CAMP_LOADS, CAMP_FOCUSES_BY_PHASE, FIGHT_PLANS,
   runFight, simulateSeason, exportCareer, importCareer, formatIso,
-  buildCommentary, renderLine,
+  buildCommentary, buildRoundStats, totalStats, accuracy, renderLine,
   createTranslator, LOCALES, LOCALE_NAMES, UNIT_SYSTEMS, THEMES,
   formatLength, formatWeight, formatMoney,
   groups: {
