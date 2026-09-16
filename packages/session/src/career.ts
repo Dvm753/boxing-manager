@@ -1,6 +1,10 @@
 import type { Fighter } from '@bm/core-model';
 import { generateWorld, CONDITION_TUNING } from '@bm/data';
-import { rankingKey, sharpnessCeiling, type FightRecordEntry, type World } from '@bm/engine-world';
+import {
+  campEntryFor, rankingKey, sharpnessCeiling,
+  type Camp, type Decision, type FightRecordEntry, type World,
+} from '@bm/engine-world';
+import { campPhaseFor, type CampPhase } from '@bm/data';
 import { SANCTIONING_BODIES } from '@bm/data';
 
 /**
@@ -21,6 +25,7 @@ export function createWorld(seed: number, fighterCount: number, startDay = DEFAU
   return {
     day: startDay, seed, fighters, schedule: [], history: {},
     unavailableUntil: {}, playerFighterIds: [], news: [], rankings: {}, rankingsPublishedOn: 0,
+    camps: [], decisions: [],
   };
 }
 
@@ -40,6 +45,19 @@ export function startCareer(world: World, fighterId: string): World {
   if (!world.fighters[fighterId]) throw new UnknownFighterError(fighterId);
   if (world.playerFighterIds.includes(fighterId)) return world;
   return { ...world, playerFighterIds: [...world.playerFighterIds, fighterId] };
+}
+
+export interface CampView {
+  fightId: string;
+  fightDay: number;
+  /** `null`, поки фаза не почалася. */
+  phase: CampPhase | null;
+  /** Що діє зараз — рішення гравця або замовчування тренера. */
+  focus: string | null;
+  load: string | null;
+  /** Чи це рішення гравця; `false` означає «так вирішив тренер». */
+  chosen: boolean;
+  phases: Camp['phases'];
 }
 
 export interface NextFightView {
@@ -63,6 +81,9 @@ export interface StableFighterView {
   /** Позиції в таблицях органів; `null` — поза топ-15. */
   rankings: readonly { bodyId: string; position: number | null }[];
   nextFight: NextFightView | null;
+  camp: CampView | null;
+  /** Що чекає на рішення саме цього бійця, найближчий дедлайн першим. */
+  pending: readonly Decision[];
   recentFights: readonly FightRecordEntry[];
   /** День, до якого боєць недоступний; 0 — доступний. */
   unavailableUntil: number;
@@ -96,6 +117,22 @@ export function playerStable(world: World): readonly StableFighterView[] {
         : Math.min(1, Math.max(0, (window - (upcoming.day - world.day)) / window)),
     };
 
+    const camp = world.camps.find((c) => c.fighterId === id);
+    const campView: CampView | null = camp === undefined ? null : (() => {
+      const daysToFight = camp.fightDay - world.day;
+      const phase = campPhaseFor(daysToFight);
+      const entry = campEntryFor(camp, daysToFight);
+      return {
+        fightId: camp.fightId,
+        fightDay: camp.fightDay,
+        phase,
+        focus: entry?.focus ?? null,
+        load: entry?.load ?? null,
+        chosen: phase !== null && camp.phases[phase] !== undefined,
+        phases: camp.phases,
+      };
+    })();
+
     const history = world.history[id] ?? [];
     const ceiling = sharpnessCeiling(fighter);
 
@@ -112,6 +149,10 @@ export function playerStable(world: World): readonly StableFighterView[] {
           .find((row) => row.fighterId === id)?.position ?? null,
       })),
       nextFight,
+      camp: campView,
+      pending: world.decisions
+        .filter((d) => d.fighterId === id)
+        .sort((x, y) => x.deadline - y.deadline || (x.id < y.id ? -1 : 1)),
       recentFights: history.slice(-RECENT).reverse(),
       unavailableUntil: world.unavailableUntil[id] ?? 0,
     }];

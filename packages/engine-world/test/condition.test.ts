@@ -13,6 +13,7 @@ function worldOf(count: number, seed = 99): World {
   return {
     day: START, seed, fighters, schedule: [], history: {},
     unavailableUntil: {}, playerFighterIds: [], news: [], rankings: {}, rankingsPublishedOn: 0,
+    camps: [], decisions: [],
   };
 }
 

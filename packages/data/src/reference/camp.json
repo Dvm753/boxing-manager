@@ -1,0 +1,51 @@
+{
+  "_note": "Коефіцієнти табору (ADR-0023). Зміна будь-якого числа тут — клас A.",
+
+  "phases": {
+    "_note": "Межі фаз у днях до бою. База відкривається разом із вікном табору (ADR-0022).",
+    "base": { "from": 56, "to": 35 },
+    "work": { "from": 34, "to": 14 },
+    "taper": { "from": 13, "to": 0 }
+  },
+
+  "load": {
+    "_note": "Навантаження діє на всю фазу: множник до набору гостроти, до втоми і до ризику травми.",
+    "light":  { "sharpness": 0.70, "fatigue": 0.4, "injury": 0.4 },
+    "normal": { "sharpness": 1.00, "fatigue": 1.0, "injury": 1.0 },
+    "heavy":  { "sharpness": 1.35, "fatigue": 3.4, "injury": 2.6 }
+  },
+
+  "focus": {
+    "_note": "Фокус фази. Множники до набору гостроти, до втоми і до ризику травми.",
+    "general":   { "sharpness": 1.00, "fatigue": 1.0, "injury": 1.0 },
+    "strength":  { "sharpness": 0.90, "fatigue": 1.2, "injury": 1.1 },
+    "stamina":   { "sharpness": 1.05, "fatigue": 1.4, "injury": 0.8 },
+    "technique": { "sharpness": 1.15, "fatigue": 0.9, "injury": 0.7 },
+    "sparring":  { "sharpness": 1.45, "fatigue": 1.3, "injury": 2.2 },
+    "tactics":   { "sharpness": 1.10, "fatigue": 0.8, "injury": 0.6 },
+    "peak":      { "sharpness": 1.20, "fatigue": 1.0, "injury": 0.9 },
+    "weight":    { "sharpness": 0.85, "fatigue": 1.6, "injury": 0.9 },
+    "rest":      { "sharpness": 0.45, "fatigue": 0.0, "injury": 0.3 }
+  },
+
+  "defaults": {
+    "_note": "Що робить тренер, коли гравець не вирішив. Дорівнює поведінці до ADR-0023: множники 1.0.",
+    "base": { "focus": "general", "load": "normal" },
+    "work": { "focus": "technique", "load": "normal" },
+    "taper": { "focus": "peak", "load": "light" }
+  },
+
+  "injury": {
+    "_note": "Травма в таборі. Базовий шанс на день множиться на фокус, навантаження і схильність бійця.",
+    "baseChancePerDay": 0.0006,
+    "perInjuryProneness": 0.06,
+    "daysOutBase": 21,
+    "daysOutPerProneness": 1.4
+  },
+
+  "decision": {
+    "_note": "Скільки днів гравець має на рішення, перш ніж фаза піде за замовчуванням тренера.",
+    "offerDeadlineDays": 7,
+    "phaseDeadlineDays": 2
+  }
+}

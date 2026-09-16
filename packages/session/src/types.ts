@@ -7,7 +7,7 @@ import type { World } from '@bm/engine-world';
  * Налаштування подання (мова, одиниці, валюта, тема) у сейв **не входять** — ADR-0019:
  * кар'єра, збережена в метричній системі, відкривається в імперській без міграції.
  */
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 /** Відбиток довідників: кар'єра, відкрита з іншими коефіцієнтами, втратила б відтворюваність. */
 export interface WorldReferenceStamp {

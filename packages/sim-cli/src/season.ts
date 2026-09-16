@@ -1,6 +1,6 @@
 import { createRng, deriveSeed } from '@bm/core-model';
 import { advanceDay, rankingKey, type PlayerCommand, type World } from '@bm/engine-world';
-import { createWorld } from '@bm/session';
+import { createWorld, decide, type PlayerPolicy } from '@bm/session';
 import { makeCandidate, proposeCard, type MatchCandidate } from '@bm/ai';
 import { CONDITION_TUNING, SANCTIONING_BODIES } from '@bm/data';
 
@@ -12,6 +12,8 @@ export interface SeasonResult {
   world: World;
   fightsHeld: number;
   byTier: Record<number, number>;
+  /** Скільки рішень ухвалив гравець за прогін (ADR-0023: орієнтир ~15 на рік на бійця). */
+  decisionsMade: number;
 }
 
 /** Створення світу живе в `session` — це частина життєвого циклу кар'єри, не прогону. */
@@ -32,15 +34,21 @@ export const defaultCardSize = (fighterCount: number): number =>
  */
 export const SCHEDULE_LEAD_DAYS = CONDITION_TUNING.sharpness.campWindowDays;
 
-export function runSeason(world: World, days: number, fightsPerCard?: number): SeasonResult {
+export function runSeason(
+  world: World, days: number, fightsPerCard?: number, policy?: PlayerPolicy,
+): SeasonResult {
   const cardSize = fightsPerCard ?? defaultCardSize(Object.keys(world.fighters).length);
   let current = world;
   let fightsHeld = 0;
+  let decisionsMade = 0;
   const byTier: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
   const rng = createRng(deriveSeed(world.seed, 'season'));
 
   for (let d = 0; d < days; d++) {
-    const commands: PlayerCommand[] = [];
+    // Рішення гравця подаються щодня: черга з дедлайнами не чекає (ADR-0020).
+    const playerCommands = current.playerFighterIds.length > 0 ? decide(current, policy) : [];
+    decisionsMade += playerCommands.length;
+    const commands: PlayerCommand[] = [...playerCommands];
 
     // Картка раз на тиждень: бокс не проводить бої щодня для тих самих людей.
     if (d % 7 === 0) {
@@ -60,6 +68,11 @@ export function runSeason(world: World, days: number, fightsPerCard?: number): S
       // за вісім тижнів наперед означає, що інакше його можна було б записати двічі.
       const booked = new Set<string>();
       for (const fight of current.schedule) { booked.add(fight.aId); booked.add(fight.bId); }
+      // Пропозиція, що чекає на відповідь, теж займає бійця: інакше промоутери
+      // засипали б підопічного новими пропозиціями щотижня, поки він думає.
+      for (const decision of current.decisions) {
+        if (decision.t === 'fightOffer') { booked.add(decision.fight.aId); booked.add(decision.fight.bId); }
+      }
       const fightDay = current.day + SCHEDULE_LEAD_DAYS;
 
       const candidates: MatchCandidate[] = Object.values(current.fighters)
@@ -102,5 +115,5 @@ export function runSeason(world: World, days: number, fightsPerCard?: number): S
     current = next;
   }
 
-  return { world: current, fightsHeld, byTier };
+  return { world: current, fightsHeld, byTier, decisionsMade };
 }

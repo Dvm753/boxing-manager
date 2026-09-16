@@ -9,7 +9,19 @@ export type Migration = (save: Record<string, unknown>) => Record<string, unknow
 
 /** Ключ — версія, з якої мігруємо. Міграція 1 переводить із версії 1 у версію 2. */
 export const MIGRATIONS: ReadonlyMap<number, Migration> = new Map<number, Migration>([
-  // Поки що жодної: поточна схема — перша.
+  /**
+   * 1 → 2 (ADR-0023): у світі з'явилися табори підопічних і черга рішень.
+   * Стара кар'єра не мала ні того, ні того — і не могла мати: підопічних у ній не було.
+   * Тому міграція додає порожні списки, а не намагається щось відновити.
+   */
+  [1, (save) => {
+    const world = save['world'] as Record<string, unknown> | undefined;
+    if (world) {
+      world['camps'] = world['camps'] ?? [];
+      world['decisions'] = world['decisions'] ?? [];
+    }
+    return save;
+  }],
 ]);
 
 export function migrate(raw: Record<string, unknown>): Record<string, unknown> {

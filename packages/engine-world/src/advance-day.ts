@@ -3,7 +3,8 @@ import { WEIGHT_CLASSES } from '@bm/data';
 import { dispatch } from './event-bus.js';
 import { HANDLERS } from './handlers.js';
 import { resolveFight } from './resolve-fight.js';
-import { advanceCondition } from './condition.js';
+import { advanceCondition, nextFightIndex } from './condition.js';
+import { advanceDecisions, applyCommands, campInjuries } from './decisions.js';
 import { buildTierIndex, fightTier } from './tiers.js';
 import { publishRankings } from './rankings.js';
 import { civilFromDays } from './calendar.js';
@@ -27,26 +28,32 @@ export function advanceDay(
    */
   _rng: Rng,
 ): { world: World; events: WorldEvent[] } {
-  // Команди гравця застосовуються до тіку: вони описують намір на майбутнє.
-  let current: World = world;
-  for (const command of commands) {
-    if (command.t === 'scheduleFight') {
-      current = { ...current, schedule: [...current.schedule, command.fight] };
-    }
-  }
+  // Команди застосовуються до тіку: вони описують намір на майбутнє. Бій за участю
+  // підопічного тут не потрапляє в календар — він стає пропозицією (ADR-0023).
+  const applied = applyCommands(world, commands, world.day);
+  let current: World = applied.world;
 
   const day = current.day + 1;
   current = { ...current, day };
 
+  // Черга рішень: прострочені закриваються, нові фази табору відкриваються.
+  const queue = advanceDecisions(current, day);
+  current = queue.world;
+
   // Форма рухається **до** боїв дня: боєць виходить у ринг у сьогоднішній формі,
   // а не у вчорашній. Окремий dispatch, бо результат потрібен уже під час симуляції (ADR-0022).
-  const daily = advanceCondition(current, day);
+  // Індекс найближчих боїв рахується один раз на день: його читають і форма, і травми.
+  const scheduleIndex = nextFightIndex(current);
+  const daily = advanceCondition(current, day, scheduleIndex);
   const conditionEvents: WorldEvent[] = [
     { t: 'DayAdvanced', day },
+    ...applied.events,
+    ...queue.events,
     { t: 'ConditionAdvanced', day, changes: daily.changes },
     ...daily.campsOpened.map((camp): WorldEvent => ({
       t: 'FighterCampStarted', fighterId: camp.fighterId, fightId: camp.fightId, day,
     })),
+    ...campInjuries(current, day, scheduleIndex),
   ];
   const before = dispatch(current, conditionEvents, HANDLERS);
   current = before.world;
@@ -68,7 +75,11 @@ export function advanceDay(
     const group = GROUP_OF[a.constants.naturalWeightClassId] ?? 'middle';
     // Власний потік випадковості на бій: додавання боїв не зсуває решту світу.
     const fightRng = createRng(deriveSeed(current.seed, `fight/${fight.id}`));
-    const resolved = resolveFight(tier, a, b, fight.scheduledRounds, fightRng, group);
+    // План бере той із таборів, чий це бій: у бійців ШІ таборів і планів немає.
+    const camp = current.camps.find((c) => c.fightId === fight.id);
+    const plans = camp?.plan === undefined ? {} : camp.fighterId === fight.aId
+      ? { a: camp.plan } : { b: camp.plan };
+    const resolved = resolveFight(tier, a, b, fight.scheduledRounds, fightRng, group, plans);
 
     initial.push({
       t: 'FightCompleted',

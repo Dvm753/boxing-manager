@@ -26,7 +26,12 @@ describe('прогін сезону', () => {
   it('бої проводяться і потрапляють у новини', () => {
     const { world, fightsHeld } = runSeason(buildWorld(7, 600), 120);
     expect(fightsHeld).toBeGreaterThan(0);
-    expect(world.news.length).toBe(fightsHeld);
+    // Новини тепер бувають не лише про бої: травма в таборі й знятий бій теж потрапляють
+    // у стрічку (ADR-0023). Інваріант лишився той самий — **кожен бій дає новину**.
+    const fightNews = world.news.filter(
+      (n) => n.key === 'news.fightWon' || n.key === 'news.fightDrawn',
+    );
+    expect(fightNews.length).toBe(fightsHeld);
   });
 
   it('усі три рівні деталізації задіяні у великому світі', () => {

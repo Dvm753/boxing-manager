@@ -13,6 +13,7 @@ function makeWorld(seed = 2026, count = 600): World {
   return {
     day: 20000, seed, fighters, schedule: [], history: {},
     unavailableUntil: {}, playerFighterIds: [], news: [], rankings: {}, rankingsPublishedOn: 0,
+    camps: [], decisions: [],
   };
 }
 

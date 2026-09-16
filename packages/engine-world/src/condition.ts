@@ -1,6 +1,6 @@
 import type { Fighter } from '@bm/core-model';
-import { CONDITION_TUNING } from '@bm/data';
-import type { ConditionChange, World } from './types.js';
+import { CAMP_TUNING, CONDITION_TUNING, campPhaseFor } from '@bm/data';
+import type { Camp, CampPlanEntry, ConditionChange, World } from './types.js';
 
 /**
  * Динаміка форми (ADR-0022). Форма живе **між боями**, у світі, а не в рушії бою:
@@ -48,6 +48,39 @@ export function nextFightIndex(world: World): Map<string, { day: number; fightId
   return index;
 }
 
+/**
+ * Що робить табір цього дня: множники до набору гостроти, до втоми і до ризику травми
+ * (ADR-0023). Для бійця без табору — нейтральні одиниці, тобто поведінка ADR-0022
+ * без змін: боєць ШІ тренується так само, як тренувався до появи рішень гравця.
+ */
+export interface CampEffect {
+  sharpness: number;
+  fatigue: number;
+  injury: number;
+}
+
+export const NEUTRAL_CAMP: CampEffect = { sharpness: 1, fatigue: 1, injury: 1 };
+
+/** План фази: рішення гравця, а якщо його немає — замовчування тренера. */
+export function campEntryFor(camp: Camp | undefined, daysToFight: number): CampPlanEntry | null {
+  const phase = campPhaseFor(daysToFight);
+  if (phase === null) return null;
+  return camp?.phases[phase] ?? CAMP_TUNING.defaults[phase];
+}
+
+export function campEffect(camp: Camp | undefined, daysToFight: number): CampEffect {
+  const entry = campEntryFor(camp, daysToFight);
+  if (entry === null) return NEUTRAL_CAMP;
+  const focus = CAMP_TUNING.focus[entry.focus];
+  const load = CAMP_TUNING.load[entry.load];
+  if (!focus || !load) return NEUTRAL_CAMP;
+  return {
+    sharpness: focus.sharpness * load.sharpness,
+    fatigue: focus.fatigue * load.fatigue,
+    injury: focus.injury * load.injury,
+  };
+}
+
 export interface DailyCondition {
   changes: readonly ConditionChange[];
   /** Бійці, у яких табір відкривається саме сьогодні. */
@@ -61,10 +94,14 @@ export interface DailyCondition {
  * боєць у рівновазі (гострота на підлозі, свіжість на стелі) не змінюється роками,
  * і копіювати його щодня означало б мільйони зайвих об'єктів за прогін.
  */
-export function advanceCondition(world: World, day: number): DailyCondition {
+export function advanceCondition(
+  world: World, day: number, index = nextFightIndex(world),
+): DailyCondition {
   const sharp = CONDITION_TUNING.sharpness;
   const fresh = CONDITION_TUNING.freshness;
-  const schedule = nextFightIndex(world);
+  const schedule = index;
+
+  const campOf = new Map(world.camps.map((c) => [c.fighterId, c]));
 
   const changes: ConditionChange[] = [];
   const campsOpened: { fighterId: string; fightId: string }[] = [];
@@ -78,14 +115,18 @@ export function advanceCondition(world: World, day: number): DailyCondition {
       campsOpened.push({ fighterId: fighter.id, fightId: next.fightId });
     }
 
+    // План фази діє лише в таборі; поза ним множники нейтральні.
+    const effect = inCamp ? campEffect(campOf.get(fighter.id), daysToFight) : NEUTRAL_CAMP;
+
     const ceiling = sharpnessCeiling(fighter);
     const sharpness = inCamp
-      ? Math.min(ceiling, fighter.condition.sharpness + sharp.campGainPerDay)
+      ? Math.min(ceiling, fighter.condition.sharpness + sharp.campGainPerDay * effect.sharpness)
       : Math.max(sharp.floor, fighter.condition.sharpness - sharp.idleDecayPerDay);
 
     const recovery = fresh.recoveryPerDay + fighter.attributes.recovery * fresh.recoveryPerAttribute;
     const freshness = clamp(
-      fighter.condition.freshness + recovery - (inCamp ? fresh.campFatiguePerDay : 0),
+      fighter.condition.freshness + recovery
+        - (inCamp ? fresh.campFatiguePerDay * effect.fatigue : 0),
       fresh.floor, fresh.max,
     );
 

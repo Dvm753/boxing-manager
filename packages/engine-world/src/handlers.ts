@@ -154,6 +154,47 @@ const conditionHandler: EventHandler = (event, world) => {
   return { world: applyChanges(world, [conditionAfterFight(fighter, event.rounds, event.headDelta)]) };
 };
 
+/**
+ * Травма в таборі (ADR-0023). Обробник **не** чіпає доступність напряму — він публікує
+ * `FighterInjured`, бо доступність належить іншому агрегату (ADR-0016 §5).
+ * Якщо пауза накриває дату бою, бій знімається: травма, яка ні на що не впливає, —
+ * фальшива механіка.
+ */
+const campInjuryHandler: EventHandler = (event, world) => {
+  if (event.t !== 'CampInjury') return unchanged(world);
+  const emit: WorldEvent[] = [
+    { t: 'FighterInjured', fighterId: event.fighterId, daysOut: event.daysOut },
+    { t: 'NewsCreated', key: 'news.campInjury', params: { fighter: event.fighterId, days: event.daysOut } },
+  ];
+  // Знімається бій із **календаря**, а не з табору: у бійців ШІ таборів немає,
+  // але травма має коштувати їм так само, як підопічному.
+  const backOn = world.day + event.daysOut;
+  for (const fight of world.schedule) {
+    if (fight.aId !== event.fighterId && fight.bId !== event.fighterId) continue;
+    if (fight.day > backOn) continue;
+    emit.push({ t: 'FightWithdrawn', fightId: fight.id, fighterId: event.fighterId, reason: 'injury' });
+  }
+  return { world, emit };
+};
+
+/** Календар і табори: єдиний обробник, що знімає бій із розкладу. */
+const withdrawalHandler: EventHandler = (event, world) => {
+  if (event.t !== 'FightWithdrawn') return unchanged(world);
+  return {
+    world: {
+      ...world,
+      schedule: world.schedule.filter((f) => f.id !== event.fightId),
+      camps: world.camps.filter((c) => c.fightId !== event.fightId),
+      decisions: world.decisions.filter((d) => !d.id.endsWith(event.fightId)
+        && !d.id.includes(`${event.fightId}/`)),
+    },
+    emit: [{
+      t: 'NewsCreated', key: 'news.fightWithdrawn',
+      params: { fighter: event.fighterId, reason: event.reason },
+    }],
+  };
+};
+
 /** Стрічка новин. Зберігає ключ і параметри, не готовий рядок (ADR-0017). */
 const newsHandler: EventHandler = (event, world) => {
   if (event.t !== 'NewsCreated') return unchanged(world);
@@ -163,5 +204,6 @@ const newsHandler: EventHandler = (event, world) => {
 };
 
 export const HANDLERS: readonly EventHandler[] = [
-  recordHandler, wearHandler, availabilityHandler, conditionHandler, newsHandler,
+  recordHandler, wearHandler, availabilityHandler, conditionHandler,
+  campInjuryHandler, withdrawalHandler, newsHandler,
 ];

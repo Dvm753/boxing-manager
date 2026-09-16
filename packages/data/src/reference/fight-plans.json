@@ -1,0 +1,9 @@
+{
+  "_note": "Готові плани на бій (ADR-0014, ADR-0023). Значення — зсуви до осей стилю бійця, а не абсолютні осі: план не перетворює боксера на іншого бійця.",
+
+  "balanced": { "_note": "Битися за своїми осями.", "axes": {} },
+  "boxing":   { "axes": { "preferredRange": -3, "pressure": -2, "risk": -2, "counterTendency": 2 } },
+  "pressure": { "axes": { "preferredRange": 3, "pressure": 4, "punchVolume": 2, "risk": 1 } },
+  "counter":  { "axes": { "counterTendency": 4, "risk": -1, "punchVolume": -2 } },
+  "bodywork": { "axes": { "bodyAttack": 5, "preferredRange": 2, "punchVolume": 1 } }
+}

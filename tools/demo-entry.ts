@@ -3,6 +3,10 @@ import { WEIGHT_CLASSES } from '../packages/data/src/weight-classes.js';
 import { SANCTIONING_BODIES } from '../packages/data/src/sanctioning-bodies.js';
 import { CURRENCIES } from '../packages/data/src/currencies.js';
 import {
+  CAMP_FOCUSES_BY_PHASE, CAMP_LOADS, CAMP_PHASES,
+} from '../packages/data/src/camp-tuning.js';
+import { FIGHT_PLANS } from '../packages/data/src/fight-plans.js';
+import {
   TECHNICAL_ATTRIBUTES, PHYSICAL_ATTRIBUTES, MENTAL_ATTRIBUTES,
 } from '../packages/core-model/src/attributes.js';
 import { STYLE_AXES, styleLabel } from '../packages/core-model/src/style.js';
@@ -102,12 +106,17 @@ function summarise(world: ReturnType<typeof buildWorld>, fightsHeld: number, byT
  * `generateWorld(seed, n)`, тому id бійця зі списку дійсний і тут. Плутанина двох
  * різних світів уже одного разу дала неправильний рядок у збереженні.
  */
-function simulateSeason(seed: number, fighters: number, days: number, playerId?: string): unknown {
+function simulateSeason(
+  seed: number, fighters: number, days: number, playerId?: string, policy?: unknown,
+): unknown {
   const base = buildWorld(seed, fighters);
   const start = playerId ? startCareer(base, playerId) : base;
-  const { world, fightsHeld, byTier } = runSeason(start, days);
-  lastWorld = world;
-  return summarise(world, fightsHeld, byTier);
+  const season = runSeason(start, days, undefined, policy as never);
+  lastWorld = season.world;
+  return {
+    ...(summarise(season.world, season.fightsHeld, season.byTier) as object),
+    decisionsMade: season.decisionsMade,
+  };
 }
 
 /**
@@ -134,6 +143,7 @@ function importCareer(text: string): { ok: true; summary: unknown; season: unkno
 
 window.BM = {
   generateWorld, WEIGHT_CLASSES, SANCTIONING_BODIES, CURRENCIES, STYLE_AXES, styleLabel,
+  CAMP_PHASES, CAMP_LOADS, CAMP_FOCUSES_BY_PHASE, FIGHT_PLANS,
   runFight, simulateSeason, exportCareer, importCareer, formatIso,
   buildCommentary, renderLine,
   createTranslator, LOCALES, LOCALE_NAMES, UNIT_SYSTEMS, THEMES,

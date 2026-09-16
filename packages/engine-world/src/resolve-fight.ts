@@ -1,9 +1,11 @@
-import { type Fighter, type Rng } from '@bm/core-model';
+import { STYLE_AXES, type Fighter, type Rng, type StyleAxes } from '@bm/core-model';
 import {
-  simulateFight, EMPTY_PLAN, type FightContext, type FightMethod,
+  simulateFight, EMPTY_PLAN, type FightContext, type FightMethod, type FightPlan,
   type FighterSnapshot, type JudgeProfile,
 } from '@bm/engine-fight';
-import { TIER_APPROXIMATION, type TierApproximation } from '@bm/data';
+import {
+  FIGHT_PLAN_AXES, TIER_APPROXIMATION, type FightPlanId, type TierApproximation,
+} from '@bm/data';
 import { averageAbility } from './tiers.js';
 import type { SimTier } from './types.js';
 
@@ -38,13 +40,31 @@ function makeJudges(rng: Rng): FightContext['judges'] {
   return [one('j1'), one('j2'), one('j3')];
 }
 
+/**
+ * План на бій (ADR-0014, ADR-0023) — **зсув до власних oсей бійця**, а не нові осі.
+ * Тому аутбоксер із планом «тиск» лишається аутбоксером, який тисне сильніше, ніж зазвичай.
+ */
+export function planFor(fighter: Fighter, plan: FightPlanId | undefined): FightPlan {
+  if (plan === undefined || plan === 'balanced') return EMPTY_PLAN;
+  const deltas = FIGHT_PLAN_AXES[plan];
+  const baseAxes: Partial<StyleAxes> = {};
+  for (const axis of STYLE_AXES) {
+    const delta = deltas[axis];
+    if (delta === undefined) continue;
+    baseAxes[axis] = Math.max(1, Math.min(20, fighter.styleAxes[axis] + delta));
+  }
+  return { baseAxes, blocks: [] };
+}
+
 /** Повна симуляція: єдиний рівень, що дає `EventLog`. */
-function resolveTier1(a: Fighter, b: Fighter, rounds: number, rng: Rng): ResolvedFight {
+function resolveTier1(
+  a: Fighter, b: Fighter, rounds: number, rng: Rng, plans: FightPlans,
+): ResolvedFight {
   const context: FightContext = {
     scheduledRounds: rounds,
     judges: makeJudges(rng),
-    planA: EMPTY_PLAN,
-    planB: EMPTY_PLAN,
+    planA: planFor(a, plans.a),
+    planB: planFor(b, plans.b),
     threeKnockdownRule: false,
   };
   const { result } = simulateFight(toSnapshot(a), toSnapshot(b), context, rng);
@@ -93,10 +113,17 @@ function resolveApproximate(
   return { method, winner, endingRound: rounds, tier };
 }
 
+/** Плани сторін. Порожньо для боїв без гравця — у бійців ШІ планів немає. */
+export interface FightPlans {
+  a?: FightPlanId;
+  b?: FightPlanId;
+}
+
 export function resolveFight(
   tier: SimTier, a: Fighter, b: Fighter, rounds: number, rng: Rng, weightGroup: string,
+  plans: FightPlans = {},
 ): ResolvedFight {
-  if (tier === 1) return resolveTier1(a, b, rounds, rng);
+  if (tier === 1) return resolveTier1(a, b, rounds, rng, plans);
   const params = TIER_APPROXIMATION[weightGroup] ?? TIER_APPROXIMATION['middle'] as TierApproximation;
   return resolveApproximate(a, b, rounds, rng, tier, params as TierApproximation);
 }
