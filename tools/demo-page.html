@@ -550,6 +550,18 @@
     });
   }
 
+  // ── сезон ───────────────────────────────────────────────────────────────
+  document.getElementById('runseason').addEventListener('click', function(){
+    var btn=document.getElementById('runseason'); btn.disabled=true;
+    setTimeout(function(){
+      var n = Math.max(50, Math.min(6000, parseInt(document.getElementById('count').value,10)||600));
+      season = BM.simulateSeason(parseInt(document.getElementById('seed').value,10)||0, n, 365,
+        myIds, myIds.length ? policy : undefined);
+      btn.disabled=false; renderBar(); renderForm(); renderStable(); renderNews(); renderRankings();
+      show(myIds.length ? 'career' : 'world');
+    }, 20);
+  });
+
   // «Ще раз» — той самий бій іншого вечора. Показує, що результат не визначений наперед:
   // змінюється лише потік випадковості, бійці й налаштування ті самі.
   document.addEventListener('click', function(e){
