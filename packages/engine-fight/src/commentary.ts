@@ -189,6 +189,19 @@ export function buildCommentary(
         });
         break;
 
+      case 'foul':
+        // Ніколи не відкидається добіркою — як нокдаун і розсічення (ADR-0027):
+        // попередження й тим паче знятий бал завжди мають бути видимі.
+        buffer.push({
+          order: order++,
+          line: {
+            round: event.round, second: event.second,
+            key: event.penalized ? 'commentary.foul.penalty' : 'commentary.foul.warning',
+            params: { fighter: event.by }, keyParams: { kind: `foul.${event.kind}` },
+          },
+        });
+        break;
+
       case 'planChange':
         buffer.push({
           order: order++,

@@ -13,6 +13,10 @@ export type PunchType = (typeof PUNCH_TYPES)[number];
 export const POSITIONS = ['out-of-range', 'long', 'mid', 'inside', 'clinch', 'ropes'] as const;
 export type Position = (typeof POSITIONS)[number];
 
+/** Фоли без дискваліфікації (ADR-0027). Дискваліфікація — окреме, ще не ухвалене рішення. */
+export const FOUL_KINDS = ['low-blow', 'holding', 'headbutt'] as const;
+export type FoulKind = (typeof FOUL_KINDS)[number];
+
 export type FighterSide = 'a' | 'b';
 
 /** Зліпок бійця. Рушій не бачить живої сутності й не може мутувати світ. */
@@ -80,6 +84,11 @@ export type FightEvent =
   | { t: 'cut'; round: number; second: number; on: FighterSide; location: 'left-eye' | 'right-eye' | 'forehead' }
   | { t: 'stun'; round: number; second: number; on: FighterSide }
   | { t: 'planChange'; round: number; second: number; by: FighterSide }
+  /**
+   * Фол (ADR-0027). `penalized: false` — перше порушення цього типу за бій, лише
+   * попередження; `true` — друге й далі, бал знято з поточного раунду.
+   */
+  | { t: 'foul'; round: number; second: number; by: FighterSide; kind: FoulKind; penalized: boolean }
   | {
       t: 'roundEnd'; round: number;
       /** Картка кожного судді за цей раунд, у порядку `context.judges` (закриває Q31). */

@@ -239,7 +239,7 @@
           <li class="yes">Текстовий репортаж бою шістьма мовами — похідна від <code>EventLog</code>, <code>ADR-0017</code></li>
           <li class="yes">Перемикач раундів зі статистикою і подіями кожного раунду — теж похідна від логу</li>
           <li class="yes">Годинник раунду, картки всіх трьох суддів, втома й шкода за раунд — закрито <code>Q30</code>, <code>Q31</code></li>
-          <li class="no">Фолів і зняття балів немає — нова механіка, окреме рішення <code>Q29</code> / <code>ADR-0027</code></li>
+          <li class="yes">Фоли (низький удар, утримання, зіткнення головами) і зняття балів — закрито <code>Q29</code>, <code>ADR-0027</code></li>
           <li class="yes">Форма жива — <code>ADR-0022</code>: ринг-руст від простою, восьмитижневий табір
               перед боєм, провал свіжості після бою</li>
           <li class="no">Рішень гравця в таборі — це Q10, окреме рішення; поки табір іде сам</li>
@@ -513,6 +513,7 @@
       row(t('ui.knockdowns'), sel.a.knockdowns, sel.b.knockdowns)+
       row(t('ui.cuts'), sel.a.cuts, sel.b.cuts)+
       row(t('ui.stunned'), sel.a.stuns, sel.b.stuns)+
+      row(t('ui.fouls'), sel.a.fouls+' ('+sel.a.foulPenalties+')', sel.b.fouls+' ('+sel.b.foulPenalties+')')+
       '</table>'+
       (snap ? '<div style="margin-top:10px">'+
         gaugeRow(t('ui.stamina'), snap.staminaA, snap.staminaB)+
@@ -541,7 +542,8 @@
     var pbp = lines.map(function(l){
       var cls='ln';
       if(l.key==='commentary.roundStart') cls+=' hd';
-      else if(l.key==='commentary.knockdown' || l.key.indexOf('commentary.stoppage.')===0
+      else if(l.key==='commentary.knockdown' || l.key==='commentary.foul.penalty'
+              || l.key.indexOf('commentary.stoppage.')===0
               || l.key.indexOf('commentary.decision.')===0) cls+=' big';
       else if(l.key==='commentary.roundSummary' || l.key==='commentary.roundEnd') cls+=' dim';
       return '<div class="'+cls+'">'+mmss(l.second)+esc(BM.renderLine(T,l,names))+'</div>';

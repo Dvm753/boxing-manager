@@ -34,4 +34,19 @@ export const TUNING = {
   judgeNoise: 0.14,
   /** Сила якоріння судді на власну попередню оцінку бою. */
   judgeAnchoring: 0.16,
+
+  /**
+   * Фоли (ADR-0027). Раз на обмін є малий шанс фолу замість звичайної дії:
+   * `foulBaseChance × (foulDirtinessBase + normalize(dirtiness) × foulDirtinessScale) × positionMultiplier[position]`.
+   */
+  foulBaseChance: 0.003,
+  foulDirtinessBase: 0.4,
+  foulDirtinessScale: 1.2,
+  foulPositionMultiplier: {
+    'out-of-range': 0.1, long: 0.4, mid: 0.8, inside: 1.3, clinch: 1.9, ropes: 1.0,
+  },
+  /** Шанс розсічення в атакованого від випадкового зіткнення головами. */
+  foulHeadbuttCutChance: 0.10,
+  /** Раунд із відібраними балами не опускається нижче цього — навіть найгірший фол не топить картку. */
+  foulMinRoundScore: 5,
 } as const;

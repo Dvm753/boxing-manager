@@ -3,7 +3,7 @@ import { scoreRound, resolveDecision, type RoundPerception } from './judging.js'
 import { TUNING } from './tuning.js';
 import type {
   FightContext, FightEvent, FightOutcome, FightPlan, FightResult, FightStats,
-  FighterSide, FighterSnapshot, LandQuality, Position, PunchType,
+  FighterSide, FighterSnapshot, FoulKind, LandQuality, Position, PunchType,
 } from './types.js';
 
 const emptyStats = (): FightStats => ({
@@ -27,6 +27,8 @@ interface FighterState {
   knockdownsTotal: number;
   stunned: number;
   cuts: number;
+  /** Скільки разів цей боєць скоїв фол кожного типу за бій (ADR-0027). */
+  fouls: Record<FoulKind, number>;
   stats: FightStats;
 }
 
@@ -142,7 +144,8 @@ export function simulateFight(
       + (1 - normalize(snap.attributes.consistency)) * (rng.next() - 0.5) * 0.14,
     headDamage: 0, bodyDamage: 0,
     stamina: 55 + snap.freshness * 0.45,
-    knockdownsThisRound: 0, knockdownsTotal: 0, stunned: 0, cuts: 0, stats: emptyStats(),
+    knockdownsThisRound: 0, knockdownsTotal: 0, stunned: 0, cuts: 0,
+    fouls: { 'low-blow': 0, holding: 0, headbutt: 0 }, stats: emptyStats(),
   });
   const fa = mk(a, 'a');
   const fb = mk(b, 'b');
@@ -161,6 +164,9 @@ export function simulateFight(
       cleanA: 0, cleanB: 0, aggressionA: 0, aggressionB: 0,
       controlA: 0, controlB: 0, defenceA: 0, defenceB: 0, knockdownsA: 0, knockdownsB: 0,
     };
+    // Бали за фоли цього раунду (ADR-0027): застосовуються до картки суддів після
+    // підрахунку, як і нокдаун, а не всередині суддівського сприйняття.
+    const foulPenalty = { a: 0, b: 0 };
     let position: Position = 'long';
 
     for (let e = 0; e < TUNING.exchangesPerRound && !finish; e++) {
@@ -177,8 +183,38 @@ export function simulateFight(
       const attacker = rng.next() < initiative(fa) / (initiative(fa) + initiative(fb)) ? fa : fb;
       const defender = attacker === fa ? fb : fa;
 
+      // Фол (ADR-0027): раз на обмін є малий шанс фолу замість звичайної дії.
+      // Тип визначає позиція: клінч дає утримання чи зіткнення головами, ближній
+      // бій — зіткнення головами, решта позицій — низький удар.
+      const foulChance =
+        TUNING.foulBaseChance
+        * (TUNING.foulDirtinessBase + a01(attacker.snap.attributes.dirtiness) * TUNING.foulDirtinessScale)
+        * TUNING.foulPositionMultiplier[position];
+      const isFoul = rng.next() < foulChance;
+      if (isFoul) {
+        const kind: FoulKind = position === 'clinch'
+          ? (rng.next() < 0.5 ? 'holding' : 'headbutt')
+          : position === 'inside' ? 'headbutt' : 'low-blow';
+        attacker.fouls[kind] += 1;
+        // Перше порушення кожного типу за бій — лише попередження, без штрафу.
+        const penalized = attacker.fouls[kind] > 1;
+        events.push({ t: 'foul', round, second, by: attacker.side, kind, penalized });
+        if (penalized) {
+          if (attacker.side === 'a') foulPenalty.a += 1; else foulPenalty.b += 1;
+        }
+        if (kind === 'headbutt' && defender.cuts < 2
+          && rng.next() < TUNING.foulHeadbuttCutChance * (1 - a01(defender.snap.attributes.cutResistance))) {
+          defender.cuts++;
+          events.push({
+            t: 'cut', round, second, on: defender.side,
+            location: rng.pick(['left-eye', 'right-eye', 'forehead'] as const),
+          });
+        }
+      }
+
       const vol = a01(attacker.axes.punchVolume);
-      const punches = 1 + (rng.next() < 0.25 + vol * 0.55 ? 1 : 0) + (rng.next() < vol * 0.22 ? 1 : 0);
+      const punches = isFoul ? 0
+        : 1 + (rng.next() < 0.25 + vol * 0.55 ? 1 : 0) + (rng.next() < vol * 0.22 ? 1 : 0);
       for (let p = 0; p < punches && !finish; p++) {
         const punch = chooseAction(attacker, position, rng);
         const quality = resolveQuality(attacker, defender, punch, position, rng);
@@ -262,11 +298,17 @@ export function simulateFight(
     perception.defenceA = fb.stats.landed > 0 ? 100 / (fb.stats.landed + 12) : 6;
     perception.defenceB = fa.stats.landed > 0 ? 100 / (fa.stats.landed + 12) : 6;
 
-    const card = context.judges.map((j, i) => {
+    const rawCard = context.judges.map((j, i) => {
       const acc = cards[i] as [number, number];
       const spread = acc[0] + acc[1] === 0 ? 0 : (acc[0] - acc[1]) / Math.max(1, round - 1);
       return scoreRound(j, perception, rng, spread);
     });
+    // Фоли знімають бал із картки правопорушника цього раунду (ADR-0027) — після
+    // суддівського сприйняття, так само як нокдаун уже врахований у scoreRound.
+    const card: (readonly [number, number])[] = rawCard.map(([sa, sb]) => [
+      Math.max(TUNING.foulMinRoundScore, sa - foulPenalty.a),
+      Math.max(TUNING.foulMinRoundScore, sb - foulPenalty.b),
+    ] as const);
     card.forEach((c, i) => {
       const acc = cards[i] as [number, number];
       acc[0] += c[0];

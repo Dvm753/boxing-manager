@@ -4,8 +4,6 @@ import { LANDED_QUALITIES, type FightEvent, type FighterSide } from './types.js'
  * Статистика за раундами — **похідна від `EventLog`**, як і коментар (ADR-0003).
  * Рушій нічого додатково не рахує і нічого не зберігає: та сама властивість, що дозволяє
  * показати той самий бій трьома різними способами (ADR-0025).
- *
- * Фолів тут усе ще немає (Q29) — це нова механіка, окреме рішення класу A.
  */
 export interface SideRoundStats {
   thrown: number;
@@ -15,6 +13,10 @@ export interface SideRoundStats {
   knockdowns: number;
   cuts: number;
   stuns: number;
+  /** Фоли цього бійця (ADR-0027): попередження й пенальті разом. */
+  fouls: number;
+  /** З них — зі знятим балом. */
+  foulPenalties: number;
 }
 
 export interface RoundStats {
@@ -36,7 +38,7 @@ export interface RoundStats {
 }
 
 const emptySide = (): SideRoundStats =>
-  ({ thrown: 0, landed: 0, power: 0, knockdowns: 0, cuts: 0, stuns: 0 });
+  ({ thrown: 0, landed: 0, power: 0, knockdowns: 0, cuts: 0, stuns: 0, fouls: 0, foulPenalties: 0 });
 
 const POWER = new Set(['clean', 'heavy', 'critical']);
 
@@ -86,6 +88,15 @@ export function buildRoundStats(eventLog: readonly FightEvent[]): readonly Round
         sideOf(at(event.round), event.on).stuns += 1;
         break;
 
+      // На відміну від `cut`/`stun`, фол записується тому, **хто його скоїв** (`by`),
+      // а не постраждалому — це порушення, а не отримана шкода.
+      case 'foul': {
+        const side = sideOf(at(event.round), event.by);
+        side.fouls += 1;
+        if (event.penalized) side.foulPenalties += 1;
+        break;
+      }
+
       case 'roundEnd': {
         const stats = at(event.round);
         stats.cards = event.cards;
@@ -126,6 +137,8 @@ export function totalStats(rounds: readonly RoundStats[]): { a: SideRoundStats; 
       to.knockdowns += from.knockdowns;
       to.cuts += from.cuts;
       to.stuns += from.stuns;
+      to.fouls += from.fouls;
+      to.foulPenalties += from.foulPenalties;
     }
   }
   return total;
