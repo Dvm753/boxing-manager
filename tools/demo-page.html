@@ -469,8 +469,8 @@
       '</div>'+
       '<div class="note">'+t('ui.potentialRange')+': <b>'+f.potentialRange[0]+'–'+f.potentialRange[1]+
       '</b> — '+t('ui.rangeNotNumber')+'.<br>'+t('ui.hiddenAttributes')+'</div>';
-    document.getElementById('pickA').addEventListener('click', function(){ slotA=f; fightRound=null; show('fight'); renderFight(); });
-    document.getElementById('pickB').addEventListener('click', function(){ slotB=f; fightRound=null; show('fight'); renderFight(); });
+    document.getElementById('pickA').addEventListener('click', function(){ slotA=f; fightRound=1; show('fight'); renderFight(); });
+    document.getElementById('pickB').addEventListener('click', function(){ slotB=f; fightRound=1; show('fight'); renderFight(); });
     document.getElementById('pickMine').addEventListener('click', function(){
       if(myIds.indexOf(f.id)<0 && myIds.length<MAX_STABLE) myIds.push(f.id);
       season=null; renderCard(); renderStable(); show('career');
@@ -537,7 +537,12 @@
 
     // Уся статистика — **похідна від EventLog** (ADR-0003): рушій нічого не додає.
     var rounds = BM.buildRoundStats(out.eventLog);
-    if(fightRound !== null && fightRound > rounds.length) fightRound = null;
+    if(fightRound !== null && fightRound > rounds.length) fightRound = rounds.length;
+    // Прогресивний перегляд: свіжий бій показується по раундах, а не результатом
+    // одразу — для динамічності. "Увесь бій" (fightRound===null) лишається способом
+    // одразу перескочити в кінець, хто не хоче гортати.
+    var revealed = fightRound === null ? rounds.length : fightRound;
+    var reachedEnd = revealed >= rounds.length;
     var sel = fightRound === null ? BM.totalStats(rounds) : rounds[fightRound-1];
     // Втома і шкода — знімок наприкінці раунду (Q31), не сума: для «увесь бій»
     // показуємо стан на кінець останнього відомого раунду — наскільки розбиті вийшли.
@@ -571,14 +576,19 @@
         gaugeRow(t('ui.bodyDamage'), snap.bodyDamageA, snap.bodyDamageB)+
       '</div>' : '');
 
-    // Вкладки раундів: нокдаун у раунді підсвічується — саме його шукають очима.
+    // Вкладки раундів: лише вже переглянуті — майбутній раунд не підглянути раніше,
+    // ніж до нього дійшли гортанням. Нокдаун підсвічується — саме його шукають очима.
     var tabs = '<button class="rtab" data-r="all" aria-current="'+(fightRound===null)+'">'+
       t('ui.wholeFight')+'</button>'+
-      rounds.map(function(x){
+      rounds.filter(function(x){ return x.round <= revealed; }).map(function(x){
         var kd = (x.a.knockdowns + x.b.knockdowns) > 0;
         return '<button class="rtab'+(kd?' kd':'')+'" data-r="'+x.round+'" aria-current="'+
           (fightRound===x.round)+'">'+t('ui.round').slice(0,1).toUpperCase()+x.round+'</button>';
       }).join('');
+    var pager =
+      '<button class="act" id="prevRoundBtn"'+(fightRound===null || fightRound<=1?' disabled':'')+'>◀ '+t('ui.prevRound')+'</button>'+
+      '<button class="act" id="nextRoundBtn"'+(reachedEnd?' disabled':'')+'>'+
+        (revealed+1>=rounds.length ? t('ui.showResult') : t('ui.nextRound'))+' ▶</button>';
 
     // Час у мм:сс (закриває Q30) — лише там, де подія прив'язана до миті раунду.
     function mmss(sec){
@@ -600,16 +610,18 @@
     }).join('');
 
     // Картка **кожного** судді за раунд, а не лише першого з трьох (закриває Q31).
-    var cards = rounds.map(function(x){
+    // Лише переглянуті раунди — картки майбутніх раундів не показуємо наперед.
+    var cards = rounds.filter(function(x){ return x.round <= revealed; }).map(function(x){
       var label = x.cards === null ? '—' : x.cards.map(function(c){ return c[0]+'–'+c[1]; }).join(' / ');
       return '<div class="card1">'+t('ui.round').slice(0,1).toUpperCase()+x.round+' '+label+'</div>';
     }).join('');
 
-    // Поради кута, застосовані під час бою (ADR-0028) — видно, коли й кому, і що саме.
+    // Поради кута, застосовані під час бою (ADR-0028) — лише вже переглянуті раунди.
+    var visibleAdvice = out.advice.filter(function(x){ return x.round <= revealed; });
     var adviceList = !advisorOn ? '' :
       '<div class="sub">'+t('ui.cornerAdviceGiven')+'</div><div class="pbp">'+
-      (out.advice.length===0 ? '<div class="ln dim">'+t('ui.noCornerAdvice')+'</div>' :
-        out.advice.map(function(x){
+      (visibleAdvice.length===0 ? '<div class="ln dim">'+t('ui.noCornerAdvice')+'</div>' :
+        visibleAdvice.map(function(x){
           var axes = Object.keys(x.axisAdjustments).map(function(ax){
             var d = x.axisAdjustments[ax];
             return esc(t('axis.'+ax))+' '+(d>0?'+':'')+d;
@@ -619,13 +631,19 @@
       '</div>';
 
     var verdict = r.winner===null ? t('ui.draw') : (r.winner==='a'?esc(slotA.name):esc(slotB.name));
+    // Результат — лише коли догорталися до кінця (чи обрали "Увесь бій"): до того часу
+    // ані метод, ані переможець не показуються, щоб не спойлерити те, до чого ще не дійшли.
+    var header = reachedEnd ?
+      '<div style="font-size:17px;font-weight:650;margin-bottom:4px">'+esc(t('method.'+r.method))+' — '+verdict+'</div>'+
+      '<div class="meta" style="margin-bottom:10px">'+t('ui.endingRound')+' '+r.endingRound+
+        (r.scorecards.length ? ' · '+t('ui.scorecards')+' '+r.scorecards.map(function(c){return c[0]+'–'+c[1];}).join(', ') : '')+'</div>'
+      : '<div style="font-size:17px;font-weight:650;margin-bottom:10px">'+t('ui.round')+' '+fightRound+' / '+rounds.length+'</div>';
     el.innerHTML =
       '<div class="meta" style="margin-bottom:6px">A: '+esc(slotA.name)+'  ·  B: '+esc(slotB.name)+'</div>'+
       strategyPanel+
-      '<div style="font-size:17px;font-weight:650;margin-bottom:4px">'+esc(t('method.'+r.method))+' — '+verdict+'</div>'+
-      '<div class="meta" style="margin-bottom:10px">'+t('ui.endingRound')+' '+r.endingRound+
-        (r.scorecards.length ? ' · '+t('ui.scorecards')+' '+r.scorecards.map(function(c){return c[0]+'–'+c[1];}).join(', ') : '')+'</div>'+
+      header+
       '<div class="rtabs">'+tabs+'</div>'+
+      '<div class="row" style="gap:8px;margin-bottom:8px">'+pager+'</div>'+
       '<div class="sub">'+(fightRound===null ? t('ui.wholeFight') : t('ui.round')+' '+fightRound)+'</div>'+
       stats+
       '<div class="sub">'+t('ui.roundCards')+'</div><div class="cards">'+cards+'</div>'+
@@ -644,6 +662,15 @@
         fightRound = v==='all' ? null : parseInt(v,10);
         renderFight();
       });
+    });
+    document.getElementById('prevRoundBtn').addEventListener('click', function(){
+      if(fightRound===null || fightRound<=1) return;
+      fightRound--; renderFight();
+    });
+    document.getElementById('nextRoundBtn').addEventListener('click', function(){
+      var r = fightRound===null ? revealed : fightRound;
+      if(r<rounds.length) fightRound = r+1;
+      renderFight();
     });
     el.querySelectorAll('[data-strategy-side]').forEach(function(sel){
       sel.addEventListener('change', function(){
@@ -679,7 +706,7 @@
   // «Ще раз» — той самий бій іншого вечора. Показує, що результат не визначений наперед:
   // змінюється лише потік випадковості, бійці й налаштування ті самі.
   document.addEventListener('click', function(e){
-    if(e.target && e.target.id === 'againBtn'){ take++; fightRound=null; renderFight(); }
+    if(e.target && e.target.id === 'againBtn'){ take++; fightRound=1; renderFight(); }
   });
 
   // План табору: три фази × (фокус + навантаження) + план на бій — рівно те,
