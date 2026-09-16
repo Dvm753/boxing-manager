@@ -182,7 +182,7 @@
   "nav.career": "Кар'єра",
   "commentary.roundStart": "— Раунд {round} —",
   "commentary.roundSummary": "Удари: {a} {landedA}/{thrownA} · {b} {landedB}/{thrownB}",
-  "commentary.roundEnd": "Кінець раунду {round}. Картки суддів: {scoreA}–{scoreB}",
+  "commentary.roundEnd": "Кінець раунду {round}. Картки суддів: {j1}, {j2}, {j3}",
   "commentary.land.clean": "{fighter} — чисте влучання ({punch}, {position})",
   "commentary.land.heavy": "{fighter} — важке влучання ({punch}, {position})",
   "commentary.land.critical": "{fighter} — руйнівне влучання ({punch}, {position})",
@@ -272,5 +272,18 @@
   "ui.punches": "Удари",
   "ui.roundCards": "Картки раундів",
   "ui.keyEvents": "Ключові події",
-  "ui.judgeCardNote": "У лог бою потрапляє картка одного судді з трьох — це втрата даних на рівні контракту (Q31). Часу події всередині раунду, втоми, шкоди і фолів у моделі ще немає (Q29, Q30)."
+  "ui.judgeCardNote": "Q30 і Q31 закрито: годинник усередині раунду, картки всіх трьох суддів і втома/шкода за раунд тепер у логу. Фолів і зняття балів досі немає — це нова механіка, окреме рішення (Q29, ADR-0027).",
+  "news.titleWonVacant": "{champion} стає новим чемпіоном {title} — пояс був вакантним",
+  "news.titleWonDethrone": "{champion} забирає пояс {title} у {former}",
+  "news.titleDefended": "{champion} захищає пояс {title} — захист №{defences}",
+  "news.titleVacated": "{champion} позбавлений пояса {title} за пропущений обов'язковий захист",
+  "ui.champion": "Чемпіон",
+  "ui.vacant": "вакантний",
+  "ui.titleFight": "Титульний бій",
+  "ui.titles": "Пояси",
+  "ui.mandatoryDefense": "обов'язковий захист",
+  "ui.defences": "Захистів",
+  "ui.stamina": "Витривалість",
+  "ui.headDamage": "Шкода голови",
+  "ui.bodyDamage": "Шкода корпусу"
 }

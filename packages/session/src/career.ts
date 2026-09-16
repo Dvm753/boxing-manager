@@ -25,7 +25,7 @@ export function createWorld(seed: number, fighterCount: number, startDay = DEFAU
   return {
     day: startDay, seed, fighters, schedule: [], history: {},
     unavailableUntil: {}, playerFighterIds: [], news: [], rankings: {}, rankingsPublishedOn: 0,
-    camps: [], decisions: [],
+    camps: [], decisions: [], titles: {},
   };
 }
 
@@ -68,6 +68,8 @@ export interface NextFightView {
   scheduledRounds: number;
   /** `null`, поки табір не відкрився; інакше 0…1 — скільки табору пройдено. */
   campProgress: number | null;
+  /** Пояс на кону (ADR-0026), `null` — звичайний бій. */
+  titleKey: string | null;
 }
 
 export interface StableFighterView {
@@ -78,8 +80,8 @@ export interface StableFighterView {
   /** Наскільки боєць близько до власної стелі гостроти: 0…1. */
   readiness: number;
   wear: Fighter['wear'];
-  /** Позиції в таблицях органів; `null` — поза топ-15. */
-  rankings: readonly { bodyId: string; position: number | null }[];
+  /** Позиції в таблицях органів; `null` — поза топ-15. `champion` — чи тримає цей пояс. */
+  rankings: readonly { bodyId: string; position: number | null; champion: boolean }[];
   nextFight: NextFightView | null;
   camp: CampView | null;
   /** Що чекає на рішення саме цього бійця, найближчий дедлайн першим. */
@@ -115,6 +117,7 @@ export function playerStable(world: World): readonly StableFighterView[] {
       campProgress: upcoming.day - world.day > window
         ? null
         : Math.min(1, Math.max(0, (window - (upcoming.day - world.day)) / window)),
+      titleKey: upcoming.titleKey ?? null,
     };
 
     const camp = world.camps.find((c) => c.fighterId === id);
@@ -143,11 +146,14 @@ export function playerStable(world: World): readonly StableFighterView[] {
       condition: fighter.condition,
       readiness: ceiling === 0 ? 0 : Math.min(1, fighter.condition.sharpness / ceiling),
       wear: fighter.wear,
-      rankings: SANCTIONING_BODIES.map((body) => ({
-        bodyId: body.id,
-        position: (world.rankings[rankingKey(body.id, fighter.constants.naturalWeightClassId)] ?? [])
-          .find((row) => row.fighterId === id)?.position ?? null,
-      })),
+      rankings: SANCTIONING_BODIES.map((body) => {
+        const key = rankingKey(body.id, fighter.constants.naturalWeightClassId);
+        return {
+          bodyId: body.id,
+          position: (world.rankings[key] ?? []).find((row) => row.fighterId === id)?.position ?? null,
+          champion: world.titles[key]?.championId === id,
+        };
+      }),
       nextFight,
       camp: campView,
       pending: world.decisions

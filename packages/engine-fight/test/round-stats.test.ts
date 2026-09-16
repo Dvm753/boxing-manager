@@ -65,16 +65,21 @@ describe('статистика за раундами — похідна від E
   it('розсічення і приголомшення записуються тому, хто їх отримав', () => {
     const log: readonly FightEvent[] = [
       { t: 'roundStart', round: 1 },
-      { t: 'punch', round: 1, by: 'a', punch: 'hook', quality: 'heavy', position: 'mid' },
-      { t: 'cut', round: 1, on: 'b', location: 'left-eye' },
-      { t: 'stun', round: 1, on: 'b' },
-      { t: 'knockdown', round: 1, by: 'a', count: 1 },
-      { t: 'roundEnd', round: 1, scoreA: 10, scoreB: 8 },
+      { t: 'punch', round: 1, second: 10, by: 'a', punch: 'hook', quality: 'heavy', position: 'mid' },
+      { t: 'cut', round: 1, second: 12, on: 'b', location: 'left-eye' },
+      { t: 'stun', round: 1, second: 12, on: 'b' },
+      { t: 'knockdown', round: 1, second: 15, by: 'a', count: 1 },
+      {
+        t: 'roundEnd', round: 1, cards: [[10, 8], [10, 8], [9, 8]],
+        staminaA: 70, staminaB: 55, headDamageA: 2, headDamageB: 18, bodyDamageA: 0, bodyDamageB: 3,
+      },
     ];
     const [round] = buildRoundStats(log);
     expect(round?.a).toMatchObject({ thrown: 1, landed: 1, power: 1, knockdowns: 1, cuts: 0, stuns: 0 });
     expect(round?.b).toMatchObject({ thrown: 0, cuts: 1, stuns: 1, knockdowns: 0 });
-    expect(round?.scoreA).toBe(10);
+    expect(round?.cards).toEqual([[10, 8], [10, 8], [9, 8]]);
+    expect(round?.staminaA).toBe(70);
+    expect(round?.headDamageB).toBe(18);
   });
 
   it('точність без кинутих ударів — нуль, а не NaN', () => {

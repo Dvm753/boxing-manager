@@ -182,7 +182,7 @@
   "nav.career": "Carrière",
   "commentary.roundStart": "— Round {round} —",
   "commentary.roundSummary": "Coups : {a} {landedA}/{thrownA} · {b} {landedB}/{thrownB}",
-  "commentary.roundEnd": "Fin du round {round}. Juges : {scoreA}–{scoreB}",
+  "commentary.roundEnd": "Fin du round {round}. Juges : {j1}, {j2}, {j3}",
   "commentary.land.clean": "{fighter} touche net ({punch}, {position})",
   "commentary.land.heavy": "{fighter} place un coup lourd ({punch}, {position})",
   "commentary.land.critical": "{fighter} place un coup dévastateur ({punch}, {position})",
@@ -272,5 +272,18 @@
   "ui.punches": "Coups",
   "ui.roundCards": "Cartes des rounds",
   "ui.keyEvents": "Faits marquants",
-  "ui.judgeCardNote": "Le journal du combat ne contient la carte que d'un juge sur trois — une perte de données au niveau du contrat (Q31). Le chronomètre interne, la fatigue, les dégâts et les fautes ne sont pas encore modélisés (Q29, Q30)."
+  "ui.judgeCardNote": "Q30 et Q31 sont clos : chronomètre interne, cartes des trois juges et fatigue/dégâts par round figurent désormais dans le journal. Les fautes et retraits de points manquent encore — nouvelle mécanique, décision séparée (Q29, ADR-0027).",
+  "news.titleWonVacant": "{champion} devient le nouveau champion {title} — le titre était vacant",
+  "news.titleWonDethrone": "{champion} prend le titre {title} à {former}",
+  "news.titleDefended": "{champion} défend le titre {title} — défense n° {defences}",
+  "news.titleVacated": "{champion} est déchu du titre {title} pour défense obligatoire manquée",
+  "ui.champion": "Champion",
+  "ui.vacant": "vacant",
+  "ui.titleFight": "Combat de titre",
+  "ui.titles": "Titres",
+  "ui.mandatoryDefense": "défense obligatoire",
+  "ui.defences": "Défenses",
+  "ui.stamina": "Endurance",
+  "ui.headDamage": "Dégâts à la tête",
+  "ui.bodyDamage": "Dégâts au corps"
 }

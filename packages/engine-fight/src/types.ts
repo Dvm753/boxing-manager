@@ -64,15 +64,33 @@ export interface FightContext {
   threeKnockdownRule: boolean;
 }
 
+/**
+ * Секунда всередині раунду, 0–179 (ADR-0025, закриває Q30). Рушій іде обмінами
+ * (`exchangesPerRound`), не секундами — час це номер обміну, перекладений у секунди
+ * трихвилинного раунду. Нової випадковості тут немає: подія лише показує те, що
+ * рушій і так знав, коли її породжував.
+ */
 export type FightEvent =
   | { t: 'roundStart'; round: number }
-  | { t: 'punch'; round: number; by: FighterSide; punch: PunchType; quality: LandQuality; position: Position }
-  | { t: 'knockdown'; round: number; by: FighterSide; count: number }
-  | { t: 'cut'; round: number; on: FighterSide; location: 'left-eye' | 'right-eye' | 'forehead' }
-  | { t: 'stun'; round: number; on: FighterSide }
-  | { t: 'planChange'; round: number; by: FighterSide }
-  | { t: 'roundEnd'; round: number; scoreA: number; scoreB: number }
-  | { t: 'stoppage'; round: number; winner: FighterSide; reason: 'ko' | 'tko' | 'rtd' }
+  | {
+      t: 'punch'; round: number; second: number; by: FighterSide;
+      punch: PunchType; quality: LandQuality; position: Position;
+    }
+  | { t: 'knockdown'; round: number; second: number; by: FighterSide; count: number }
+  | { t: 'cut'; round: number; second: number; on: FighterSide; location: 'left-eye' | 'right-eye' | 'forehead' }
+  | { t: 'stun'; round: number; second: number; on: FighterSide }
+  | { t: 'planChange'; round: number; second: number; by: FighterSide }
+  | {
+      t: 'roundEnd'; round: number;
+      /** Картка кожного судді за цей раунд, у порядку `context.judges` (закриває Q31). */
+      cards: readonly (readonly [number, number])[];
+      /** Втома 0–100 наприкінці раунду, до відновлення в кутку (закриває Q31). */
+      staminaA: number; staminaB: number;
+      /** Накопичена шкода наприкінці раунду, до відновлення в кутку (закриває Q31). */
+      headDamageA: number; headDamageB: number;
+      bodyDamageA: number; bodyDamageB: number;
+    }
+  | { t: 'stoppage'; round: number; second: number; winner: FighterSide; reason: 'ko' | 'tko' | 'rtd' }
   | { t: 'decision'; kind: 'UD' | 'SD' | 'MD' | 'D'; winner: FighterSide | null };
 
 export type FightMethod = 'KO' | 'TKO' | 'RTD' | 'UD' | 'SD' | 'MD' | 'D';

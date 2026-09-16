@@ -148,7 +148,7 @@ export function simulateFight(
   const fb = mk(b, 'b');
   const cards: [number, number][] = context.judges.map(() => [0, 0]);
 
-  let finish: { winner: FighterSide; reason: 'ko' | 'tko' | 'rtd'; round: number } | null = null;
+  let finish: { winner: FighterSide; reason: 'ko' | 'tko' | 'rtd'; round: number; second: number } | null = null;
 
   for (let round = 1; round <= context.scheduledRounds && !finish; round++) {
     events.push({ t: 'roundStart', round });
@@ -164,6 +164,10 @@ export function simulateFight(
     let position: Position = 'long';
 
     for (let e = 0; e < TUNING.exchangesPerRound && !finish; e++) {
+      // Годинник раунду (ADR-0025, Q30): номер обміну, перекладений у секунди
+      // трихвилинного раунду. Не нова випадковість — рушій це й так знав.
+      const second = Math.min(179, Math.floor((e / TUNING.exchangesPerRound) * 180));
+
       // Ініціатива: робота ніг, швидкість, агресія, ринговий IQ, мінус втома.
       const initiative = (f: FighterState): number =>
         a01(f.snap.attributes.footwork) * 0.22 + a01(f.snap.attributes.handSpeed) * 0.2 +
@@ -178,7 +182,7 @@ export function simulateFight(
       for (let p = 0; p < punches && !finish; p++) {
         const punch = chooseAction(attacker, position, rng);
         const quality = resolveQuality(attacker, defender, punch, position, rng);
-        events.push({ t: 'punch', round, by: attacker.side, punch, quality, position });
+        events.push({ t: 'punch', round, second, by: attacker.side, punch, quality, position });
 
         const st = attacker.stats;
         st.thrown++;
@@ -200,11 +204,14 @@ export function simulateFight(
 
           if (quality === 'heavy' || quality === 'critical') {
             defender.stunned = Math.max(defender.stunned, quality === 'critical' ? 3 : 1);
-            events.push({ t: 'stun', round, on: defender.side });
+            events.push({ t: 'stun', round, second, on: defender.side });
           }
           if (quality === 'critical' && defender.cuts < 2 && rng.next() < 0.12 * (1 - a01(defender.snap.attributes.cutResistance))) {
             defender.cuts++;
-            events.push({ t: 'cut', round, on: defender.side, location: rng.pick(['left-eye', 'right-eye', 'forehead'] as const) });
+            events.push({
+              t: 'cut', round, second, on: defender.side,
+              location: rng.pick(['left-eye', 'right-eye', 'forehead'] as const),
+            });
           }
 
           // Нокдаун: накопичена шкода плюс окремий шанс від critical.
@@ -219,15 +226,15 @@ export function simulateFight(
             defender.knockdownsTotal++;
             attacker.stats.knockdowns++;
             if (defender.side === 'a') perception.knockdownsA++; else perception.knockdownsB++;
-            events.push({ t: 'knockdown', round, by: attacker.side, count: defender.knockdownsTotal });
+            events.push({ t: 'knockdown', round, second, by: attacker.side, count: defender.knockdownsTotal });
 
             const heart = a01(defender.snap.attributes.heart);
             const wearPenalty = defender.snap.headTrauma / 300;
             const koChance = TUNING.koOnKnockdownBase + over * 0.9 + wearPenalty - heart * 0.14;
             if (rng.next() < koChance) {
-              finish = { winner: attacker.side, reason: 'ko', round };
+              finish = { winner: attacker.side, reason: 'ko', round, second };
             } else if (context.threeKnockdownRule && defender.knockdownsThisRound >= 3) {
-              finish = { winner: attacker.side, reason: 'tko', round };
+              finish = { winner: attacker.side, reason: 'tko', round, second };
             } else {
               defender.stunned = 4;
               defender.headDamage += 4;
@@ -239,7 +246,7 @@ export function simulateFight(
       }
 
       if (!finish && defender.headDamage > TUNING.refereeStopThreshold && defender.stunned > 0) {
-        finish = { winner: attacker.side, reason: 'tko', round };
+        finish = { winner: attacker.side, reason: 'tko', round, second };
       }
 
       position = nextPosition(attacker, defender, position, rng);
@@ -265,7 +272,14 @@ export function simulateFight(
       acc[0] += c[0];
       acc[1] += c[1];
     });
-    events.push({ t: 'roundEnd', round, scoreA: card[0]?.[0] ?? 10, scoreB: card[0]?.[1] ?? 10 });
+    // Втома і шкода наприкінці раунду — **до** відновлення в кутку нижче, бо саме
+    // такими вони були, коли пролунав гонг (закриває Q31).
+    events.push({
+      t: 'roundEnd', round, cards: card,
+      staminaA: fa.stamina, staminaB: fb.stamina,
+      headDamageA: fa.headDamage, headDamageB: fb.headDamage,
+      bodyDamageA: fa.bodyDamage, bodyDamageB: fb.bodyDamage,
+    });
 
     // Відновлення між раундами.
     for (const f of [fa, fb]) {
@@ -278,14 +292,17 @@ export function simulateFight(
     // Кут може зняти бійця, якщо той розбитий.
     for (const [f, other] of [[fa, fb], [fb, fa]] as const) {
       if (!finish && f.headDamage > 70 && rng.next() < TUNING.cornerRetirementChance * (f.headDamage / 40)) {
-        finish = { winner: other.side, reason: 'rtd', round };
+        finish = { winner: other.side, reason: 'rtd', round, second: 180 };
       }
     }
   }
 
   let result: FightResult;
   if (finish) {
-    events.push({ t: 'stoppage', round: finish.round, winner: finish.winner, reason: finish.reason });
+    events.push({
+      t: 'stoppage', round: finish.round, second: finish.second,
+      winner: finish.winner, reason: finish.reason,
+    });
     result = {
       method: finish.reason === 'ko' ? 'KO' : finish.reason === 'rtd' ? 'RTD' : 'TKO',
       winner: finish.winner,

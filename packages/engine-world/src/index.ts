@@ -4,6 +4,7 @@ export * from './event-bus.js';
 export * from './handlers.js';
 export * from './tiers.js';
 export * from './condition.js';
+export * from './titles.js';
 export * from './decisions.js';
 export * from './resolve-fight.js';
 export * from './rankings.js';

@@ -12,6 +12,11 @@ export interface ScheduledFight {
   aId: string;
   bId: string;
   scheduledRounds: number;
+  /**
+   * Пояс, що на кону (ADR-0026): `<bodyId>/<weightClassId>`. Відсутній — звичайний бій.
+   * Титульний бій завжди 12 раундів; це задає той, хто складає картку, не рушій.
+   */
+  titleKey?: string;
 }
 
 export interface FightRecordEntry {
@@ -82,6 +87,22 @@ export type Decision =
       fightId: string; opponentId: string;
     };
 
+/**
+ * Стан пояса (ADR-0026). **Не** похідна від історії, на відміну від рейтингу (ADR-0018):
+ * позбавлення за пропущений захист і дата останнього завоювання — рішення органу,
+ * а не наслідок, який можна перерахувати заново з самих боїв.
+ */
+export interface TitleState {
+  /** `null` — вакантний. */
+  championId: string | null;
+  /** День, коли пояс завойовано (або звільнено, якщо вакантний). */
+  since: number;
+  /** Скільки разів захищено поспіль із моменту завоювання. */
+  defences: number;
+  /** Останній день, коли чемпіон зобов'язаний провести захист; `null` без чемпіона немає сенсу. */
+  mandatoryDueBy: number | null;
+}
+
 export interface World {
   day: number;
   seed: number;
@@ -100,6 +121,13 @@ export interface World {
   camps: readonly Camp[];
   /** Черга рішень гравця з дедлайнами (ADR-0020). */
   decisions: readonly Decision[];
+  /**
+   * Пояси (ADR-0026), ключ той самий, що й у `rankings`: `<bodyId>/<weightClassId>`.
+   * Відсутній ключ означає вакантний пояс, який ще ніхто не запитував — семантично
+   * те саме, що явний запис із `championId: null`; записи створюються лінькво,
+   * так само як таблиці рейтингів.
+   */
+  titles: Record<string, TitleState>;
 }
 
 /** Нове значення форми бійця. Обидва поля 0–100 (ADR-0022). */
@@ -115,6 +143,8 @@ export type WorldEvent =
       t: 'FightCompleted'; fightId: string; day: number; aId: string; bId: string;
       method: FightMethod; winnerId: string | null; endingRound: number;
       scheduledRounds: number; tier: SimTier;
+      /** Пояс на кону, якщо бій титульний (ADR-0026); з `ScheduledFight.titleKey`. */
+      titleKey?: string;
     }
   | { t: 'FighterRecordUpdated'; fighterId: string; day: number }
   | { t: 'FighterWearIncreased'; fighterId: string; rounds: number; headDelta: number }
@@ -151,7 +181,17 @@ export type WorldEvent =
   /** Бій знято з календаря: травма в таборі накрила його дату. */
   | { t: 'FightWithdrawn'; fightId: string; fighterId: string; reason: 'injury' }
   | { t: 'NewsCreated'; key: string; params: Record<string, string | number> }
-  | { t: 'RankingsPublished'; day: number; bodyId: string };
+  | { t: 'RankingsPublished'; day: number; bodyId: string }
+  /**
+   * Пояс здобуто (ADR-0026): або заповнено вакансію (`vacant: true`), або скинуто
+   * чемпіона (`vacant: false`). Нічия в титульному бою сюди не потрапляє — пояс
+   * лишається на місці, це `TitleDefended` або взагалі нічого, якщо був вакантним.
+   */
+  | { t: 'TitleWon'; titleKey: string; championId: string; day: number; vacant: boolean }
+  /** Успішний захист, включно з нічиєю — нічия в боксі лишає пояс чемпіону. */
+  | { t: 'TitleDefended'; titleKey: string; championId: string; day: number; defences: number }
+  /** Чемпіон не провів обов'язковий захист вчасно — пояс стає вакантним. */
+  | { t: 'TitleVacated'; titleKey: string; formerChampionId: string; day: number };
 
 export type WorldEventType = WorldEvent['t'];
 

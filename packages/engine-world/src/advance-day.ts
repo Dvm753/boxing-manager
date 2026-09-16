@@ -7,6 +7,7 @@ import { advanceCondition, nextFightIndex } from './condition.js';
 import { advanceDecisions, applyCommands, campInjuries } from './decisions.js';
 import { buildTierIndex, fightTier } from './tiers.js';
 import { publishRankings } from './rankings.js';
+import { checkMandatoryDefenses } from './titles.js';
 import { civilFromDays } from './calendar.js';
 import { SANCTIONING_BODIES } from '@bm/data';
 import type { PlayerCommand, World, WorldEvent } from './types.js';
@@ -92,16 +93,19 @@ export function advanceDay(
       endingRound: resolved.endingRound,
       scheduledRounds: fight.scheduledRounds,
       tier: resolved.tier,
+      ...(fight.titleKey === undefined ? {} : { titleKey: fight.titleKey }),
     });
   }
 
   // Рейтинги публікуються раз на місяць, першого числа (ADR-0018): так дешевше
-  // і так само працює реальний бокс.
+  // і так само працює реальний бокс. Обов'язкові захисти (ADR-0026) перевіряються
+  // тим самим тактом: комісії не звіряють дедлайни щодня.
   if (civilFromDays(day).day === 1) {
     current = { ...current, rankings: publishRankings(current), rankingsPublishedOn: day };
     for (const body of SANCTIONING_BODIES) {
       initial.push({ t: 'RankingsPublished', day, bodyId: body.id });
     }
+    initial.push(...checkMandatoryDefenses(current, day));
   }
 
   const after = dispatch(current, initial, HANDLERS);

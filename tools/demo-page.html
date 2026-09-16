@@ -183,6 +183,10 @@
 
     <section id="sec-rankings" hidden>
       <h1 data-i18n="nav.rankings">Рейтинги</h1>
+      <div class="panel">
+        <h3 style="margin:0 0 8px;font-size:13px" data-i18n="ui.titles">Пояси</h3>
+        <div id="titlenewsout"><div class="meta" data-i18n="ui.noRanking">—</div></div>
+      </div>
       <div class="panel"><div class="rankgrid" id="rankout"><div class="meta" data-i18n="ui.noRanking">—</div></div></div>
     </section>
 
@@ -229,11 +233,13 @@
           <li class="yes">Матчмейкінг ШІ: бій виникає лише за згодою обох сторін; перспективного бережуть, джорнимена виставляють</li>
           <li class="yes">Темп кар'єри: 2.4 бої на рік, не частіше ніж раз на вісім тижнів — як у реальному боксі</li>
           <li class="yes">Шість мов, одиниці, валюта, тема — <code>ADR-0017</code>, <code>ADR-0019</code></li>
-          <li class="no">Титулів, контрактів, промоутерів, грошей — фаза 2</li>
+          <li class="yes">Пояси, титульні бої, обов'язкові захисти й позбавлення — <code>ADR-0026</code></li>
+          <li class="no">Контрактів, промоутерів, грошей — решта фази 2</li>
           <li class="yes">Збереження й відкриття кар'єри — <code>ADR-0004</code>; три роки з перезапуском перевірено тестом</li>
           <li class="yes">Текстовий репортаж бою шістьма мовами — похідна від <code>EventLog</code>, <code>ADR-0017</code></li>
           <li class="yes">Перемикач раундів зі статистикою і подіями кожного раунду — теж похідна від логу</li>
-          <li class="no">Часу події в раунді, втоми, шкоди і фолів — <code>Q29</code>–<code>Q31</code>, потребує змін у рушії</li>
+          <li class="yes">Годинник раунду, картки всіх трьох суддів, втома й шкода за раунд — закрито <code>Q30</code>, <code>Q31</code></li>
+          <li class="no">Фолів і зняття балів немає — нова механіка, окреме рішення <code>Q29</code> / <code>ADR-0027</code></li>
           <li class="yes">Форма жива — <code>ADR-0022</code>: ринг-руст від простою, восьмитижневий табір
               перед боєм, провал свіжості після бою</li>
           <li class="no">Рішень гравця в таборі — це Q10, окреме рішення; поки табір іде сам</li>
@@ -483,9 +489,21 @@
     var rounds = BM.buildRoundStats(out.eventLog);
     if(fightRound !== null && fightRound > rounds.length) fightRound = null;
     var sel = fightRound === null ? BM.totalStats(rounds) : rounds[fightRound-1];
+    // Втома і шкода — знімок наприкінці раунду (Q31), не сума: для «увесь бій»
+    // показуємо стан на кінець останнього відомого раунду — наскільки розбиті вийшли.
+    var lastKnown = rounds.filter(function(x){ return x.cards !== null; }).slice(-1)[0];
+    var snap = fightRound === null ? lastKnown : rounds[fightRound-1];
 
     function row(label, av, bv){
       return '<tr><td class="l">'+av+'</td><td class="m">'+esc(label)+'</td><td class="r">'+bv+'</td></tr>';
+    }
+    function gaugeRow(label, av, bv){
+      return '<div class="row" style="gap:14px;align-items:center;margin-bottom:4px">'+
+        '<span class="mono" style="width:34px;text-align:right;font-size:12.5px">'+Math.round(av)+'</span>'+
+        '<span class="bar2" style="flex:1"><i style="width:'+Math.max(0,Math.min(100,av))+'%"></i></span>'+
+        '<span class="meta" style="font-size:11.5px;width:80px;text-align:center">'+esc(label)+'</span>'+
+        '<span class="bar2" style="flex:1"><i style="width:'+Math.max(0,Math.min(100,bv))+'%;float:right"></i></span>'+
+        '<span class="mono" style="width:34px;font-size:12.5px">'+Math.round(bv)+'</span></div>';
     }
     var stats =
       '<table class="cmp">'+
@@ -495,7 +513,12 @@
       row(t('ui.knockdowns'), sel.a.knockdowns, sel.b.knockdowns)+
       row(t('ui.cuts'), sel.a.cuts, sel.b.cuts)+
       row(t('ui.stunned'), sel.a.stuns, sel.b.stuns)+
-      '</table>';
+      '</table>'+
+      (snap ? '<div style="margin-top:10px">'+
+        gaugeRow(t('ui.stamina'), snap.staminaA, snap.staminaB)+
+        gaugeRow(t('ui.headDamage'), snap.headDamageA, snap.headDamageB)+
+        gaugeRow(t('ui.bodyDamage'), snap.bodyDamageA, snap.bodyDamageB)+
+      '</div>' : '');
 
     // Вкладки раундів: нокдаун у раунді підсвічується — саме його шукають очима.
     var tabs = '<button class="rtab" data-r="all" aria-current="'+(fightRound===null)+'">'+
@@ -506,6 +529,12 @@
           (fightRound===x.round)+'">'+t('ui.round').slice(0,1).toUpperCase()+x.round+'</button>';
       }).join('');
 
+    // Час у мм:сс (закриває Q30) — лише там, де подія прив'язана до миті раунду.
+    function mmss(sec){
+      if(sec===null || sec===undefined) return '';
+      var m=Math.floor(sec/60), s=sec%60;
+      return '<span class="mono meta" style="font-size:11.5px;margin-right:6px">'+m+':'+(s<10?'0':'')+s+'</span>';
+    }
     var lines = BM.buildCommentary(out.eventLog).filter(function(l){
       return fightRound === null ? true : l.round === fightRound;
     });
@@ -515,12 +544,13 @@
       else if(l.key==='commentary.knockdown' || l.key.indexOf('commentary.stoppage.')===0
               || l.key.indexOf('commentary.decision.')===0) cls+=' big';
       else if(l.key==='commentary.roundSummary' || l.key==='commentary.roundEnd') cls+=' dim';
-      return '<div class="'+cls+'">'+esc(BM.renderLine(T,l,names))+'</div>';
+      return '<div class="'+cls+'">'+mmss(l.second)+esc(BM.renderLine(T,l,names))+'</div>';
     }).join('');
 
+    // Картка **кожного** судді за раунд, а не лише першого з трьох (закриває Q31).
     var cards = rounds.map(function(x){
-      return '<div class="card1">'+t('ui.round').slice(0,1).toUpperCase()+x.round+' '+
-        (x.scoreA===null ? '—' : x.scoreA+'–'+x.scoreB)+'</div>';
+      var label = x.cards === null ? '—' : x.cards.map(function(c){ return c[0]+'–'+c[1]; }).join(' / ');
+      return '<div class="card1">'+t('ui.round').slice(0,1).toUpperCase()+x.round+' '+label+'</div>';
     }).join('');
 
     var verdict = r.winner===null ? t('ui.draw') : (r.winner==='a'?esc(slotA.name):esc(slotB.name));
@@ -610,12 +640,15 @@
 
   function stableCard(v){
     var nf = v.nextFight
-      ? esc(v.nextFight.opponentName)+' · '+v.nextFight.date+' · '+v.nextFight.daysAway+' '+t('ui.daysToFight')+
+      ? (v.nextFight.titleKey ? '<b style="color:var(--accent)">'+t('ui.titleFight')+'</b> · ' : '')+
+        esc(v.nextFight.opponentName)+' · '+v.nextFight.date+' · '+v.nextFight.daysAway+' '+t('ui.daysToFight')+
         (v.nextFight.campProgress===null ? '' :
           ' · '+t('ui.campProgress')+' '+Math.round(v.nextFight.campProgress*100)+'%')
       : '—';
     var ranks = v.rankings.map(function(r){
-      return t('body.'+r.bodyId)+' '+(r.position===null ? t('ui.noRankPosition') : '#'+r.position);
+      return t('body.'+r.bodyId)+' '+
+        (r.champion ? '<b style="color:var(--accent)">'+t('ui.champion')+'</b>'
+          : r.position===null ? t('ui.noRankPosition') : '#'+r.position);
     }).join(' · ');
     var last = v.recentFights.length
       ? v.recentFights.map(function(f){
@@ -671,6 +704,43 @@
       'перед призначеним боєм; свіжість провалюється після бою і повертається з відпочинком.</div>';
   }
 
+  // Мітка пояса: "Глобальна боксерська рада · Легка вага" — з titleKey бере лише те,
+  // що потрібно показати, сам ключ (`<bodyId>/<weightClassId>`) лишається технічним.
+  function titleLabel(titleKey){
+    var slash = titleKey.indexOf('/');
+    var bodyId = titleKey.slice(0, slash), wcId = titleKey.slice(slash + 1);
+    return t('body.'+bodyId) + ' · ' + t('weightClass.'+wcId);
+  }
+  var fighterName = function(id){ return esc(season.names[id] || '—'); };
+
+  // Кожен ключ новини несе свій набір параметрів (ADR-0017): рушій завжди дає лише
+  // ключ і сирі значення, подання вирішує, що з них показати і як. Título-новини
+  // (ADR-0026) і `campInjury`/`fightWithdrawn` (ADR-0023) отримали власні параметри
+  // тут уперше — досі вони мовчки лишали `{fighter}`/`{days}` непідставленими.
+  function newsParams(n){
+    switch(n.key){
+      case 'news.fightWon': case 'news.fightDrawn':
+        return { winner: fighterName(n.params.winner), loser: fighterName(n.params.loser),
+                 method: esc(t('method.'+n.params.method)), round: n.params.round };
+      case 'news.campInjury':
+        return { fighter: fighterName(n.params.fighter), days: n.params.days };
+      case 'news.fightWithdrawn':
+        return { fighter: fighterName(n.params.fighter) };
+      case 'news.titleWonVacant':
+        return { champion: fighterName(n.params.champion), title: esc(titleLabel(n.params.titleKey)) };
+      case 'news.titleWonDethrone':
+        return { champion: fighterName(n.params.champion), former: fighterName(n.params.former),
+                 title: esc(titleLabel(n.params.titleKey)) };
+      case 'news.titleDefended':
+        return { champion: fighterName(n.params.champion), defences: n.params.defences,
+                 title: esc(titleLabel(n.params.titleKey)) };
+      case 'news.titleVacated':
+        return { champion: fighterName(n.params.champion), title: esc(titleLabel(n.params.titleKey)) };
+      default:
+        return {};
+    }
+  }
+
   function renderNews(){
     var el=document.getElementById('newsout');
     if(!season){ el.innerHTML='<div class="meta">'+t('ui.noRanking')+'</div>'; return; }
@@ -679,15 +749,27 @@
       ' · '+season.injured+' '+t('ui.injured')+
       ' · '+t('ui.tier')+' 1/2/3: '+season.tierCounts[1]+'/'+season.tierCounts[2]+'/'+season.tierCounts[3]+'</div>'+
       season.news.slice(0,40).map(function(n){
+        var cls = n.key.indexOf('news.title')===0 ? ' style="color:var(--accent);font-weight:600"' : '';
         return '<div class="newsrow"><span class="meta mono" style="font-size:12px">'+BM.formatIso(n.day)+'</span>  '+
-          t(n.key, { winner: esc(season.names[n.params.winner]||'—'),
-                     loser: esc(season.names[n.params.loser]||'—'),
-                     method: esc(t('method.'+n.params.method)), round: n.params.round })+'</div>';
+          '<span'+cls+'>'+t(n.key, newsParams(n))+'</span></div>';
       }).join('');
+  }
+
+  function renderTitleNews(){
+    var el=document.getElementById('titlenewsout');
+    if(!el) return;
+    if(!season || !season.titleNews || !season.titleNews.length){
+      el.innerHTML='<div class="meta">'+t('ui.noRanking')+'</div>'; return;
+    }
+    el.innerHTML = season.titleNews.map(function(n){
+      return '<div class="newsrow"><span class="meta mono" style="font-size:12px">'+BM.formatIso(n.day)+'</span>  '+
+        t(n.key, newsParams(n))+'</div>';
+    }).join('');
   }
 
   function renderRankings(){
     var el=document.getElementById('rankout');
+    renderTitleNews();
     if(!season || !season.rankings){ el.innerHTML='<div class="meta">'+t('ui.noRanking')+'</div>'; return; }
     el.innerHTML = season.rankings.map(function(r){
       var list = r.rows.map(function(x){
@@ -697,8 +779,12 @@
           '<span class="mono meta">'+x.score.toFixed(2)+'</span></div>';
       }).join('') || '<div class="meta">'+t('ui.noRanking')+'</div>';
       return '<div><h3 style="margin:0 0 2px;font-size:13px">'+esc(t('body.'+r.bodyId))+'</h3>'+
-        '<div class="meta" style="font-size:11.5px;margin-bottom:6px">'+esc(t('character.'+r.characterKey))+
-        ' · '+esc(t('weightClass.'+season.rankedClass))+'</div>'+list+'</div>';
+        '<div class="meta" style="font-size:11.5px;margin-bottom:2px">'+esc(t('character.'+r.characterKey))+
+        ' · '+esc(t('weightClass.'+season.rankedClass))+'</div>'+
+        '<div style="font-size:12.5px;margin-bottom:6px">'+t('ui.champion')+': '+
+        (r.champion ? '<b style="color:var(--accent)">'+esc(r.champion)+'</b>'+
+          ' · '+t('ui.defences')+' '+r.defences : '<i style="color:var(--dim)">'+t('ui.vacant')+'</i>')+
+        '</div>'+list+'</div>';
     }).join('');
   }
 

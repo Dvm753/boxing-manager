@@ -5,9 +5,7 @@ import { LANDED_QUALITIES, type FightEvent, type FighterSide } from './types.js'
  * Рушій нічого додатково не рахує і нічого не зберігає: та сама властивість, що дозволяє
  * показати той самий бій трьома різними способами (ADR-0025).
  *
- * Чого тут **немає і не може бути з наявного логу** (Q29–Q31): часу події всередині раунду,
- * карток усіх трьох суддів за раунд, втоми, накопиченої шкоди і фолів. Це вимагає
- * розширення `FightEvent`, тобто рішення класу A.
+ * Фолів тут усе ще немає (Q29) — це нова механіка, окреме рішення класу A.
  */
 export interface SideRoundStats {
   thrown: number;
@@ -23,12 +21,16 @@ export interface RoundStats {
   round: number;
   a: SideRoundStats;
   b: SideRoundStats;
-  /**
-   * Картка судді за цей раунд. Наразі в лог потрапляє **один суддя з трьох** — це
-   * втрата даних на рівні контракту, а не брак механіки (Q31).
-   */
-  scoreA: number | null;
-  scoreB: number | null;
+  /** Картка кожного судді за цей раунд, у порядку `context.judges`; `null` — раунд ще не суджено. */
+  cards: readonly (readonly [number, number])[] | null;
+  /** Втома 0–100 наприкінці раунду, до відновлення в кутку; `null` — ще невідомо. */
+  staminaA: number | null;
+  staminaB: number | null;
+  /** Накопичена шкода наприкінці раунду, до відновлення в кутку; `null` — ще невідомо. */
+  headDamageA: number | null;
+  headDamageB: number | null;
+  bodyDamageA: number | null;
+  bodyDamageB: number | null;
   /** Чи бій завершився саме в цьому раунді. */
   finished: boolean;
 }
@@ -48,7 +50,9 @@ export function buildRoundStats(eventLog: readonly FightEvent[]): readonly Round
     const existing = rounds.get(round);
     if (existing) return existing;
     const created: RoundStats = {
-      round, a: emptySide(), b: emptySide(), scoreA: null, scoreB: null, finished: false,
+      round, a: emptySide(), b: emptySide(), cards: null,
+      staminaA: null, staminaB: null, headDamageA: null, headDamageB: null,
+      bodyDamageA: null, bodyDamageB: null, finished: false,
     };
     rounds.set(round, created);
     return created;
@@ -84,8 +88,13 @@ export function buildRoundStats(eventLog: readonly FightEvent[]): readonly Round
 
       case 'roundEnd': {
         const stats = at(event.round);
-        stats.scoreA = event.scoreA;
-        stats.scoreB = event.scoreB;
+        stats.cards = event.cards;
+        stats.staminaA = event.staminaA;
+        stats.staminaB = event.staminaB;
+        stats.headDamageA = event.headDamageA;
+        stats.headDamageB = event.headDamageB;
+        stats.bodyDamageA = event.bodyDamageA;
+        stats.bodyDamageB = event.bodyDamageB;
         break;
       }
 

@@ -9,6 +9,11 @@ import type { FightEvent, FighterSide, LandQuality, PunchType } from './types.js
  */
 export interface CommentaryLine {
   round: number;
+  /**
+   * Секунда всередині раунду, 0–180 (закриває Q30). `null` — рядок не прив'язаний
+   * до миті (підсумок раунду, вердикт): показувати час поруч із ним нема сенсу.
+   */
+  second: number | null;
   key: string;
   /** Значення підстановок: числа і сторони бійців (`a` / `b`). */
   params: Record<string, string | number>;
@@ -48,10 +53,23 @@ interface Buffered {
   rank?: number;
 }
 
+/**
+ * Картки всіх трьох суддів як готові рядки "10–9" (закриває Q31: досі показувався
+ * лише перший суддя з трьох). Формат числа тут — не локалізація: параметри рядка
+ * перекладу приймають лише `string | number`, а сама пара — не та величина, яку
+ * потрібно форматувати за мовою користувача.
+ */
+const cardParams = (
+  cards: readonly (readonly [number, number])[],
+): { j1: string; j2: string; j3: string } => {
+  const label = (c: readonly [number, number] | undefined): string => c === undefined ? '—' : `${c[0]}–${c[1]}`;
+  return { j1: label(cards[0]), j2: label(cards[1]), j3: label(cards[2]) };
+};
+
 const punchLine = (
-  round: number, by: FighterSide, punch: PunchType, quality: LandQuality, position: string,
+  round: number, second: number, by: FighterSide, punch: PunchType, quality: LandQuality, position: string,
 ): CommentaryLine => ({
-  round,
+  round, second,
   key: `commentary.land.${quality}`,
   params: { fighter: by },
   keyParams: { punch: `punch.${punch}`, position: `position.${position}` },
@@ -82,12 +100,12 @@ export function buildCommentary(
    */
   let stunned = new Set<FighterSide>();
 
-  const flush = (scoreA?: number, scoreB?: number): void => {
+  const flush = (cards?: readonly (readonly [number, number])[]): void => {
     // Порожній раунд не породжує рядків: інакше лог, що завершився рішенням,
     // отримував би зайвий підсумок із нулями після останнього раунду.
     if (round === 0 || (buffer.length === 0 && tallyA.thrown === 0 && tallyB.thrown === 0)) {
-      if (scoreA === undefined || scoreB === undefined) return;
-      out.push({ round, key: 'commentary.roundEnd', params: { round, scoreA, scoreB } });
+      if (cards === undefined) return;
+      out.push({ round, second: 180, key: 'commentary.roundEnd', params: { round, ...cardParams(cards) } });
       return;
     }
     const notable = buffer
@@ -100,7 +118,7 @@ export function buildCommentary(
     }
     if (roundSummary) {
       out.push({
-        round,
+        round, second: null,
         key: 'commentary.roundSummary',
         params: {
           a: 'a', b: 'b',
@@ -109,8 +127,8 @@ export function buildCommentary(
         },
       });
     }
-    if (scoreA !== undefined && scoreB !== undefined) {
-      out.push({ round, key: 'commentary.roundEnd', params: { round, scoreA, scoreB } });
+    if (cards !== undefined) {
+      out.push({ round, second: 180, key: 'commentary.roundEnd', params: { round, ...cardParams(cards) } });
     }
     buffer = [];
     tallyA = emptyTally();
@@ -122,7 +140,7 @@ export function buildCommentary(
     switch (event.t) {
       case 'roundStart':
         round = event.round;
-        out.push({ round, key: 'commentary.roundStart', params: { round } });
+        out.push({ round, second: 0, key: 'commentary.roundStart', params: { round } });
         break;
 
       case 'punch': {
@@ -134,7 +152,7 @@ export function buildCommentary(
           buffer.push({
             order: order++,
             rank,
-            line: punchLine(event.round, event.by, event.punch, event.quality, event.position),
+            line: punchLine(event.round, event.second, event.by, event.punch, event.quality, event.position),
           });
         }
         break;
@@ -144,7 +162,7 @@ export function buildCommentary(
         buffer.push({
           order: order++,
           line: {
-            round: event.round, key: 'commentary.knockdown',
+            round: event.round, second: event.second, key: 'commentary.knockdown',
             params: { fighter: event.by, count: event.count },
           },
         });
@@ -155,7 +173,9 @@ export function buildCommentary(
         stunned.add(event.on);
         buffer.push({
           order: order++,
-          line: { round: event.round, key: 'commentary.stun', params: { fighter: event.on } },
+          line: {
+            round: event.round, second: event.second, key: 'commentary.stun', params: { fighter: event.on },
+          },
         });
         break;
 
@@ -163,7 +183,7 @@ export function buildCommentary(
         buffer.push({
           order: order++,
           line: {
-            round: event.round, key: 'commentary.cut',
+            round: event.round, second: event.second, key: 'commentary.cut',
             params: { fighter: event.on }, keyParams: { location: `cut.${event.location}` },
           },
         });
@@ -172,18 +192,21 @@ export function buildCommentary(
       case 'planChange':
         buffer.push({
           order: order++,
-          line: { round: event.round, key: 'commentary.planChange', params: { fighter: event.by } },
+          line: {
+            round: event.round, second: event.second, key: 'commentary.planChange',
+            params: { fighter: event.by },
+          },
         });
         break;
 
       case 'roundEnd':
-        flush(event.scoreA, event.scoreB);
+        flush(event.cards);
         break;
 
       case 'stoppage':
         flush();
         out.push({
-          round: event.round,
+          round: event.round, second: event.second,
           key: `commentary.stoppage.${event.reason}`,
           params: { fighter: event.winner, round: event.round },
         });
@@ -192,7 +215,7 @@ export function buildCommentary(
       case 'decision':
         flush();
         out.push({
-          round,
+          round, second: null,
           key: `commentary.decision.${event.kind}`,
           params: event.winner === null ? {} : { fighter: event.winner },
         });

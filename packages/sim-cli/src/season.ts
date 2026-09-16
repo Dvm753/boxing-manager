@@ -1,7 +1,10 @@
 import { createRng, deriveSeed } from '@bm/core-model';
 import { advanceDay, rankingKey, type PlayerCommand, type World } from '@bm/engine-world';
 import { createWorld, decide, type PlayerPolicy } from '@bm/session';
-import { makeCandidate, proposeCard, type MatchCandidate } from '@bm/ai';
+import {
+  makeCandidate, proposeCard, proposeTitleFights,
+  type MatchCandidate, type TitleCandidate,
+} from '@bm/ai';
 import { CONDITION_TUNING, SANCTIONING_BODIES } from '@bm/data';
 
 /**
@@ -76,6 +79,37 @@ export function runSeason(
         if (decision.t === 'fightOffer') { booked.add(decision.fight.aId); booked.add(decision.fight.bId); }
       }
       const fightDay = current.day + SCHEDULE_LEAD_DAYS;
+
+      // Титульні бої (ADR-0026) — вакансії й термінові обов'язкові захисти — складаються
+      // **до** звичайної картки: чемпіон і претендент не повинні одночасно потрапити
+      // у звичайний бій і в титульний.
+      const isAvailable = (fighterId: string): boolean =>
+        (current.unavailableUntil[fighterId] ?? 0) <= fightDay;
+      const titleCandidates: TitleCandidate[] = Object.keys(current.rankings).sort()
+        .map((titleKey): TitleCandidate => ({
+          titleKey,
+          championId: current.titles[titleKey]?.championId ?? null,
+          mandatoryDueBy: current.titles[titleKey]?.mandatoryDueBy ?? null,
+          ranked: (current.rankings[titleKey] ?? []).map((row) => row.fighterId),
+        }));
+      const titleFights = proposeTitleFights(
+        titleCandidates, current.day, (id) => booked.has(id), isAvailable,
+        // Подвійне вікно домовленості: перша спроба може зірватися (чемпіон чи
+        // претендент того тижня зайняті), а друга все одно має встигнути до дедлайну.
+        { proposalWindowDays: SCHEDULE_LEAD_DAYS * 2 },
+      );
+      titleFights.forEach((bout, i) => {
+        booked.add(bout.aId);
+        booked.add(bout.bId);
+        commands.push({
+          t: 'scheduleFight',
+          fight: {
+            id: `t${fightDay}-${i}-${bout.aId.slice(0, 8)}`,
+            day: fightDay, aId: bout.aId, bId: bout.bId, scheduledRounds: 12,
+            titleKey: bout.titleKey,
+          },
+        });
+      });
 
       const candidates: MatchCandidate[] = Object.values(current.fighters)
         .filter((fighter) => !booked.has(fighter.id))

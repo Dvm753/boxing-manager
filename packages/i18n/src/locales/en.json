@@ -182,7 +182,7 @@
   "nav.career": "Career",
   "commentary.roundStart": "— Round {round} —",
   "commentary.roundSummary": "Punches: {a} {landedA}/{thrownA} · {b} {landedB}/{thrownB}",
-  "commentary.roundEnd": "End of round {round}. Judges: {scoreA}–{scoreB}",
+  "commentary.roundEnd": "End of round {round}. Judges: {j1}, {j2}, {j3}",
   "commentary.land.clean": "{fighter} lands clean ({punch}, {position})",
   "commentary.land.heavy": "{fighter} lands heavy ({punch}, {position})",
   "commentary.land.critical": "{fighter} lands a shattering blow ({punch}, {position})",
@@ -272,5 +272,18 @@
   "ui.punches": "Punches",
   "ui.roundCards": "Round cards",
   "ui.keyEvents": "Key events",
-  "ui.judgeCardNote": "The fight log carries one judge's card out of three — a contract-level data loss (Q31). In-round timing, fatigue, damage and fouls are not modelled yet (Q29, Q30)."
+  "ui.judgeCardNote": "Q30 and Q31 closed: an in-round clock, all three judges' cards and per-round fatigue/damage are now in the log. Fouls and point deductions are still missing — that's a new mechanic, a separate decision (Q29, ADR-0027).",
+  "news.titleWonVacant": "{champion} becomes the new {title} champion — the belt was vacant",
+  "news.titleWonDethrone": "{champion} takes the {title} title from {former}",
+  "news.titleDefended": "{champion} defends the {title} title — defence No. {defences}",
+  "news.titleVacated": "{champion} is stripped of the {title} title for missing the mandatory defence",
+  "ui.champion": "Champion",
+  "ui.vacant": "vacant",
+  "ui.titleFight": "Title fight",
+  "ui.titles": "Titles",
+  "ui.mandatoryDefense": "mandatory defence",
+  "ui.defences": "Defences",
+  "ui.stamina": "Stamina",
+  "ui.headDamage": "Head damage",
+  "ui.bodyDamage": "Body damage"
 }

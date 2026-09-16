@@ -182,7 +182,7 @@
   "nav.career": "Karriere",
   "commentary.roundStart": "— Runde {round} —",
   "commentary.roundSummary": "Schläge: {a} {landedA}/{thrownA} · {b} {landedB}/{thrownB}",
-  "commentary.roundEnd": "Ende der Runde {round}. Punktrichter: {scoreA}–{scoreB}",
+  "commentary.roundEnd": "Ende der Runde {round}. Punktrichter: {j1}, {j2}, {j3}",
   "commentary.land.clean": "{fighter} trifft sauber ({punch}, {position})",
   "commentary.land.heavy": "{fighter} trifft schwer ({punch}, {position})",
   "commentary.land.critical": "{fighter} trifft verheerend ({punch}, {position})",
@@ -272,5 +272,18 @@
   "ui.punches": "Schläge",
   "ui.roundCards": "Rundenkarten",
   "ui.keyEvents": "Schlüsselmomente",
-  "ui.judgeCardNote": "Das Kampfprotokoll enthält nur die Karte eines von drei Punktrichtern — ein Datenverlust auf Vertragsebene (Q31). Rundenzeit, Ermüdung, Schaden und Fouls sind noch nicht modelliert (Q29, Q30)."
+  "ui.judgeCardNote": "Q30 und Q31 sind geschlossen: eine Rundenzeit, die Karten aller drei Punktrichter und Ermüdung/Schaden pro Runde stehen jetzt im Protokoll. Fouls und Punktabzüge fehlen noch — das ist eine neue Mechanik, eine eigene Entscheidung (Q29, ADR-0027).",
+  "news.titleWonVacant": "{champion} wird neuer {title}-Champion — der Titel war vakant",
+  "news.titleWonDethrone": "{champion} übernimmt den {title}-Titel von {former}",
+  "news.titleDefended": "{champion} verteidigt den {title}-Titel — {defences}. Titelverteidigung",
+  "news.titleVacated": "{champion} wird der {title}-Titel wegen verpasster Pflichtverteidigung aberkannt",
+  "ui.champion": "Champion",
+  "ui.vacant": "vakant",
+  "ui.titleFight": "Titelkampf",
+  "ui.titles": "Titel",
+  "ui.mandatoryDefense": "Pflichtverteidigung",
+  "ui.defences": "Titelverteidigungen",
+  "ui.stamina": "Ausdauer",
+  "ui.headDamage": "Kopfschaden",
+  "ui.bodyDamage": "Körperschaden"
 }

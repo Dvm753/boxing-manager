@@ -182,7 +182,7 @@
   "nav.career": "Carriera",
   "commentary.roundStart": "— Ripresa {round} —",
   "commentary.roundSummary": "Colpi: {a} {landedA}/{thrownA} · {b} {landedB}/{thrownB}",
-  "commentary.roundEnd": "Fine della ripresa {round}. Giudici: {scoreA}–{scoreB}",
+  "commentary.roundEnd": "Fine della ripresa {round}. Giudici: {j1}, {j2}, {j3}",
   "commentary.land.clean": "{fighter} colpisce pulito ({punch}, {position})",
   "commentary.land.heavy": "{fighter} colpisce pesante ({punch}, {position})",
   "commentary.land.critical": "{fighter} piazza un colpo devastante ({punch}, {position})",
@@ -272,5 +272,18 @@
   "ui.punches": "Colpi",
   "ui.roundCards": "Cartellini delle riprese",
   "ui.keyEvents": "Momenti chiave",
-  "ui.judgeCardNote": "Il registro dell'incontro riporta il cartellino di un giudice su tre: una perdita di dati a livello di contratto (Q31). Il cronometro interno, la fatica, il danno e i falli non sono ancora modellati (Q29, Q30)."
+  "ui.judgeCardNote": "Q30 e Q31 sono chiuse: un cronometro interno, i cartellini di tutti e tre i giudici e fatica/danno per ripresa sono ora nel registro. I falli e le detrazioni di punti mancano ancora — è una meccanica nuova, una decisione separata (Q29, ADR-0027).",
+  "news.titleWonVacant": "{champion} diventa il nuovo campione {title} — il titolo era vacante",
+  "news.titleWonDethrone": "{champion} strappa il titolo {title} a {former}",
+  "news.titleDefended": "{champion} difende il titolo {title} — difesa n. {defences}",
+  "news.titleVacated": "{champion} viene privato del titolo {title} per la difesa obbligatoria mancata",
+  "ui.champion": "Campione",
+  "ui.vacant": "vacante",
+  "ui.titleFight": "Incontro titolato",
+  "ui.titles": "Titoli",
+  "ui.mandatoryDefense": "difesa obbligatoria",
+  "ui.defences": "Difese",
+  "ui.stamina": "Resistenza",
+  "ui.headDamage": "Danno alla testa",
+  "ui.bodyDamage": "Danno al corpo"
 }

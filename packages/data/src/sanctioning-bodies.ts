@@ -21,6 +21,12 @@ export interface SanctioningBody {
   marketabilityWeight: number;
   /** Скільки місяців історії враховується. */
   windowMonths: number;
+  /**
+   * Скільки днів чемпіон має на обов'язковий захист (ADR-0026). Пропустив —
+   * позбавляється пояса. Різний в кожного органу: це і є те, чим органи
+   * відрізняються не лише формулою рейтингу.
+   */
+  mandatoryDefenseDays: number;
 }
 
 export const SANCTIONING_BODIES: readonly SanctioningBody[] = raw as SanctioningBody[];

@@ -182,7 +182,7 @@
   "nav.career": "Carrera",
   "commentary.roundStart": "— Asalto {round} —",
   "commentary.roundSummary": "Golpes: {a} {landedA}/{thrownA} · {b} {landedB}/{thrownB}",
-  "commentary.roundEnd": "Fin del asalto {round}. Jueces: {scoreA}–{scoreB}",
+  "commentary.roundEnd": "Fin del asalto {round}. Jueces: {j1}, {j2}, {j3}",
   "commentary.land.clean": "{fighter} conecta limpio ({punch}, {position})",
   "commentary.land.heavy": "{fighter} conecta con fuerza ({punch}, {position})",
   "commentary.land.critical": "{fighter} conecta un golpe demoledor ({punch}, {position})",
@@ -272,5 +272,18 @@
   "ui.punches": "Golpes",
   "ui.roundCards": "Tarjetas por asalto",
   "ui.keyEvents": "Momentos clave",
-  "ui.judgeCardNote": "El registro del combate incluye la tarjeta de un juez de tres: una pérdida de datos a nivel de contrato (Q31). El cronómetro interno, la fatiga, el daño y las faltas aún no están modelados (Q29, Q30)."
+  "ui.judgeCardNote": "Q30 y Q31 están cerradas: un cronómetro interno, las tarjetas de los tres jueces y la fatiga/daño por asalto ya están en el registro. Las faltas y las restas de puntos aún faltan — es una mecánica nueva, una decisión aparte (Q29, ADR-0027).",
+  "news.titleWonVacant": "{champion} es el nuevo campeón {title} — el título estaba vacante",
+  "news.titleWonDethrone": "{champion} le quita el título {title} a {former}",
+  "news.titleDefended": "{champion} defiende el título {title} — defensa n.º {defences}",
+  "news.titleVacated": "{champion} pierde el título {title} por no cumplir la defensa obligatoria",
+  "ui.champion": "Campeón",
+  "ui.vacant": "vacante",
+  "ui.titleFight": "Combate por el título",
+  "ui.titles": "Títulos",
+  "ui.mandatoryDefense": "defensa obligatoria",
+  "ui.defences": "Defensas",
+  "ui.stamina": "Resistencia",
+  "ui.headDamage": "Daño en la cabeza",
+  "ui.bodyDamage": "Daño al cuerpo"
 }

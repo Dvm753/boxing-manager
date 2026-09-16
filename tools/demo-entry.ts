@@ -55,11 +55,17 @@ function summarise(world: ReturnType<typeof buildWorld>, fightsHeld: number, byT
   for (const f of Object.values(world.fighters)) names[f.id] = f.name;
 
   const shown = 'welterweight';
-  const rankings = SANCTIONING_BODIES.map((body) => ({
-    bodyId: body.id, characterKey: body.characterKey,
-    rows: (world.rankings[rankingKey(body.id, shown)] ?? []).slice(0, 10)
-      .map((r) => ({ position: r.position, name: names[r.fighterId] ?? '—', score: r.score })),
-  }));
+  const rankings = SANCTIONING_BODIES.map((body) => {
+    const key = rankingKey(body.id, shown);
+    const championId = world.titles[key]?.championId ?? null;
+    return {
+      bodyId: body.id, characterKey: body.characterKey,
+      champion: championId === null ? null : (names[championId] ?? '—'),
+      defences: world.titles[key]?.defences ?? 0,
+      rows: (world.rankings[key] ?? []).slice(0, 10)
+        .map((r) => ({ position: r.position, name: names[r.fighterId] ?? '—', score: r.score })),
+    };
+  });
 
   // Форма світу (ADR-0022): видно, що вона справді жива, а не задана при генерації.
   const schedule = nextFightIndex(world);
@@ -84,6 +90,10 @@ function summarise(world: ReturnType<typeof buildWorld>, fightsHeld: number, byT
     fighters: Object.keys(world.fighters).length,
     injured: Object.values(world.unavailableUntil).filter((d) => d > world.day).length,
     names, news: world.news.slice(-60).reverse(), rankings, rankedClass: shown,
+    // Титульних новин мало порівняно зі звичайними (ADR-0026: одиниці відсотків боїв),
+    // тож у загальній стрічці за 60 останніх подій вони губляться в багатому світі.
+    // Власна вибірка — тим самим світом, без додаткового джерела правди.
+    titleNews: world.news.filter((n) => n.key.startsWith('news.title')).slice(-20).reverse(),
     stable: playerStable(world).map((view) => ({
       ...view,
       name: names[view.fighterId] ?? '—',

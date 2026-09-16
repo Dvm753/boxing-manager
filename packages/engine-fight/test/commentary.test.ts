@@ -81,10 +81,13 @@ describe('коментар бою — похідна від EventLog', () => {
   it('критичне влучання наприкінці раунду витісняє чисті влучання на початку', () => {
     const log: readonly FightEvent[] = [
       { t: 'roundStart', round: 1 },
-      { t: 'punch', round: 1, by: 'a', punch: 'jab', quality: 'clean', position: 'long' },
-      { t: 'punch', round: 1, by: 'a', punch: 'jab', quality: 'clean', position: 'long' },
-      { t: 'punch', round: 1, by: 'b', punch: 'hook', quality: 'critical', position: 'inside' },
-      { t: 'roundEnd', round: 1, scoreA: 9, scoreB: 10 },
+      { t: 'punch', round: 1, second: 10, by: 'a', punch: 'jab', quality: 'clean', position: 'long' },
+      { t: 'punch', round: 1, second: 40, by: 'a', punch: 'jab', quality: 'clean', position: 'long' },
+      { t: 'punch', round: 1, second: 170, by: 'b', punch: 'hook', quality: 'critical', position: 'inside' },
+      {
+        t: 'roundEnd', round: 1, cards: [[9, 10], [9, 10], [9, 10]],
+        staminaA: 80, staminaB: 78, headDamageA: 5, headDamageB: 12, bodyDamageA: 2, bodyDamageB: 1,
+      },
     ];
     const lines = buildCommentary(log, { notablePerRound: 1, roundSummary: false });
     expect(lines.map((l) => l.key)).toEqual([
@@ -96,12 +99,15 @@ describe('коментар бою — похідна від EventLog', () => {
   it('нокдаун, приголомшення і розсічення ніколи не відкидаються добіркою', () => {
     const log: readonly FightEvent[] = [
       { t: 'roundStart', round: 1 },
-      { t: 'punch', round: 1, by: 'a', punch: 'cross', quality: 'heavy', position: 'mid' },
-      { t: 'knockdown', round: 1, by: 'a', count: 1 },
-      { t: 'stun', round: 1, on: 'b' },
-      { t: 'cut', round: 1, on: 'b', location: 'left-eye' },
-      { t: 'planChange', round: 1, by: 'b' },
-      { t: 'roundEnd', round: 1, scoreA: 10, scoreB: 8 },
+      { t: 'punch', round: 1, second: 20, by: 'a', punch: 'cross', quality: 'heavy', position: 'mid' },
+      { t: 'knockdown', round: 1, second: 20, by: 'a', count: 1 },
+      { t: 'stun', round: 1, second: 20, on: 'b' },
+      { t: 'cut', round: 1, second: 25, on: 'b', location: 'left-eye' },
+      { t: 'planChange', round: 1, second: 100, by: 'b' },
+      {
+        t: 'roundEnd', round: 1, cards: [[10, 8], [10, 8], [10, 8]],
+        staminaA: 75, staminaB: 60, headDamageA: 3, headDamageB: 20, bodyDamageA: 1, bodyDamageB: 4,
+      },
     ];
     const keys = buildCommentary(log, { notablePerRound: 0 }).map((l) => l.key);
     expect(keys).toEqual([
@@ -111,15 +117,19 @@ describe('коментар бою — похідна від EventLog', () => {
   });
 
   it('приголомшення показується раз на бійця за раунд, а не щоразу', () => {
+    const roundEnd = (round: number): FightEvent => ({
+      t: 'roundEnd', round, cards: [[10, 9], [10, 9], [10, 9]],
+      staminaA: 80, staminaB: 82, headDamageA: 4, headDamageB: 6, bodyDamageA: 1, bodyDamageB: 1,
+    });
     const log: readonly FightEvent[] = [
       { t: 'roundStart', round: 1 },
-      { t: 'stun', round: 1, on: 'b' },
-      { t: 'stun', round: 1, on: 'b' },
-      { t: 'stun', round: 1, on: 'a' },
-      { t: 'roundEnd', round: 1, scoreA: 10, scoreB: 9 },
+      { t: 'stun', round: 1, second: 5, on: 'b' },
+      { t: 'stun', round: 1, second: 30, on: 'b' },
+      { t: 'stun', round: 1, second: 60, on: 'a' },
+      roundEnd(1),
       { t: 'roundStart', round: 2 },
-      { t: 'stun', round: 2, on: 'b' },
-      { t: 'roundEnd', round: 2, scoreA: 10, scoreB: 9 },
+      { t: 'stun', round: 2, second: 15, on: 'b' },
+      roundEnd(2),
     ];
     const stuns = buildCommentary(log).filter((l) => l.key === 'commentary.stun');
     expect(stuns.map((l) => `${l.round}${String(l.params['fighter'])}`)).toEqual(['1b', '1a', '2b']);
@@ -137,13 +147,13 @@ describe('коментар бою — похідна від EventLog', () => {
       { t: 'roundStart', round: 1 },
       { t: 'decision', kind: 'D', winner: null },
     ]);
-    expect(lines.at(-1)).toEqual({ round: 1, key: 'commentary.decision.D', params: {} });
+    expect(lines.at(-1)).toEqual({ round: 1, second: null, key: 'commentary.decision.D', params: {} });
   });
 
   it('обірваний лог не мовчить: накопичене за раундом виводиться', () => {
     const lines = buildCommentary([
       { t: 'roundStart', round: 3 },
-      { t: 'knockdown', round: 3, by: 'a', count: 1 },
+      { t: 'knockdown', round: 3, second: 90, by: 'a', count: 1 },
     ]);
     expect(lines.map((l) => l.key)).toContain('commentary.knockdown');
   });

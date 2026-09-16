@@ -7,7 +7,8 @@
     "inertia": 0.55,
     "homeRegionBias": 0.05,
     "marketabilityWeight": 0.2,
-    "windowMonths": 36
+    "windowMonths": 36,
+    "mandatoryDefenseDays": 365
   },
   {
     "id": "uba",
@@ -17,7 +18,8 @@
     "inertia": 0.2,
     "homeRegionBias": 0.0,
     "marketabilityWeight": 0.3,
-    "windowMonths": 24
+    "windowMonths": 24,
+    "mandatoryDefenseDays": 240
   },
   {
     "id": "ipb",
@@ -27,7 +29,8 @@
     "inertia": 0.35,
     "homeRegionBias": 0.25,
     "marketabilityWeight": 1.2,
-    "windowMonths": 30
+    "windowMonths": 30,
+    "mandatoryDefenseDays": 300
   },
   {
     "id": "sbf",
@@ -37,6 +40,7 @@
     "inertia": 0.15,
     "homeRegionBias": 0.0,
     "marketabilityWeight": 0.0,
-    "windowMonths": 18
+    "windowMonths": 18,
+    "mandatoryDefenseDays": 270
   }
 ]

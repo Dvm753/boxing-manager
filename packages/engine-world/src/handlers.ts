@@ -1,6 +1,7 @@
 import type { EventHandler, HandlerResult } from './event-bus.js';
 import { conditionAfterFight } from './condition.js';
-import type { ConditionChange, FightRecordEntry, World, WorldEvent } from './types.js';
+import { nextMandatoryDueBy, parseTitleKey, titleAt, vacantTitle } from './titles.js';
+import type { ConditionChange, FightRecordEntry, TitleState, World, WorldEvent } from './types.js';
 
 const unchanged = (world: World): HandlerResult => ({ world });
 
@@ -177,6 +178,73 @@ const campInjuryHandler: EventHandler = (event, world) => {
   return { world, emit };
 };
 
+/**
+ * Пояси (ADR-0026). Єдиний обробник, що змінює `world.titles`: результат титульного бою
+ * і прострочений обов'язковий захист приходять сюди, більше пояс не чіпає ніхто.
+ *
+ * Нічия в титульному бою лишає пояс чемпіону — це правило боксу, не спрощення моделі,
+ * і рахується **успішним захистом**, як і перемога.
+ */
+const titleHandler: EventHandler = (event, world) => {
+  if (event.t === 'TitleVacated') {
+    return {
+      world: { ...world, titles: { ...world.titles, [event.titleKey]: vacantTitle(event.day) } },
+      emit: [{
+        t: 'NewsCreated', key: 'news.titleVacated',
+        params: { titleKey: event.titleKey, champion: event.formerChampionId },
+      }],
+    };
+  }
+
+  if (event.t !== 'FightCompleted' || event.titleKey === undefined) return unchanged(world);
+
+  const { bodyId } = parseTitleKey(event.titleKey);
+  const current = titleAt(world, event.titleKey);
+  const dueBy = nextMandatoryDueBy(event.day, bodyId);
+
+  // Нічия без чемпіона (вакантний бій закінчився внічию) — вакансія лишається вакансією,
+  // тут нема чого змінювати чи повідомляти окремо: `news.fightDrawn` уже сказав своє.
+  if (event.winnerId === null && current.championId === null) return unchanged(world);
+
+  // Нічия з чемпіоном — успішний захист: пояс лишається на місці.
+  const defended = event.winnerId === null || event.winnerId === current.championId;
+
+  if (defended && current.championId !== null) {
+    const next: TitleState = { ...current, defences: current.defences + 1, mandatoryDueBy: dueBy };
+    return {
+      world: { ...world, titles: { ...world.titles, [event.titleKey]: next } },
+      emit: [
+        {
+          t: 'TitleDefended', titleKey: event.titleKey, championId: current.championId, day: event.day,
+          defences: next.defences,
+        },
+        {
+          t: 'NewsCreated', key: 'news.titleDefended',
+          params: { titleKey: event.titleKey, champion: current.championId, defences: next.defences },
+        },
+      ],
+    };
+  }
+
+  // Інакше — новий чемпіон: або заповнена вакансія, або скинутий чемпіон.
+  const winnerId = event.winnerId as string;
+  const next: TitleState = { championId: winnerId, since: event.day, defences: 0, mandatoryDueBy: dueBy };
+  return {
+    world: { ...world, titles: { ...world.titles, [event.titleKey]: next } },
+    emit: [
+      {
+        t: 'TitleWon', titleKey: event.titleKey, championId: winnerId, day: event.day,
+        vacant: current.championId === null,
+      },
+      {
+        t: 'NewsCreated',
+        key: current.championId === null ? 'news.titleWonVacant' : 'news.titleWonDethrone',
+        params: { titleKey: event.titleKey, champion: winnerId, former: current.championId ?? '' },
+      },
+    ],
+  };
+};
+
 /** Календар і табори: єдиний обробник, що знімає бій із розкладу. */
 const withdrawalHandler: EventHandler = (event, world) => {
   if (event.t !== 'FightWithdrawn') return unchanged(world);
@@ -205,5 +273,5 @@ const newsHandler: EventHandler = (event, world) => {
 
 export const HANDLERS: readonly EventHandler[] = [
   recordHandler, wearHandler, availabilityHandler, conditionHandler,
-  campInjuryHandler, withdrawalHandler, newsHandler,
+  campInjuryHandler, withdrawalHandler, titleHandler, newsHandler,
 ];
