@@ -64,3 +64,33 @@ describe('коронні прийоми атаки в бою (Q34)', () => {
     }
   });
 });
+
+describe('коронні прийоми оборони в бою (Q34, друга частина)', () => {
+  /**
+   * Щоб перевірити саме прийом, а не атрибути: обидва захисники мають **однакову**
+   * зважену суму `defence` у `resolveQuality` (0.28·голова + 0.24·блок + …), але в
+   * одного рух головою випереджає решту — і лише він отримує `headMover`.
+   */
+  const evenDef = { headMovement: 10, blocking: 10, defensiveDiscipline: 10, anticipation: 10, footwork: 10 };
+  const moverDef = { headMovement: 16, blocking: 3, defensiveDiscipline: 10, anticipation: 10, footwork: 10 };
+
+  it('проти headMover суперник влучає в голову рідше за рівної суми захисту', () => {
+    const attacker = toSnapshot(opponent);
+    const base = world.fighters[0] as Fighter;
+    const even = toSnapshot(base, evenDef);
+    const mover = toSnapshot(base, moverDef);
+    const headRate = (def: FighterSnapshot): number => {
+      let thrown = 0, landed = 0;
+      for (let seed = 0; seed < 300; seed++) {
+        const out = simulateFight(attacker, def, ctx(), createRng(seed));
+        for (const e of out.eventLog) {
+          if (e.t !== 'punch' || e.by !== 'a' || e.punch === 'bodyShot') continue;
+          thrown++;
+          if (e.quality !== 'miss' && e.quality !== 'block') landed++;
+        }
+      }
+      return landed / thrown;
+    };
+    expect(headRate(mover)).toBeLessThan(headRate(even));
+  });
+});

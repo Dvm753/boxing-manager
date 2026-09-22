@@ -64,4 +64,16 @@ export const TUNING = {
   },
   /** Бонус до offence у resolveQuality, коли влучання — саме коронним ударом. */
   signatureQualityBonus: 0.004,
+
+  /**
+   * Коронні прийоми оборони (Q34, друга частина). `defenceBonus` — додаток до `defence`
+   * у `resolveQuality` проти ударів, від яких прийом захищає; `ropesEscape` — додаток
+   * до шансу вийти з канатів для різки кутів; `clinchStunRelief` — частка, на яку клінчер
+   * зменшує бонус влучання по приголомшеному собі.
+   */
+  defenseSignature: {
+    defenceBonus: 0.02,
+    ropesEscape: 0.05,
+    clinchStunRelief: 0.2,
+  },
 } as const;

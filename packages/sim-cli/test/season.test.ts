@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildWorld, runSeason } from '../src/season.js';
+import { buildWorld, runSeason, simulateDay, startSeasonClock } from '../src/season.js';
 import { formatIso } from '@bm/engine-world';
+import { decide, startCareer } from '@bm/session';
 
 describe('прогін сезону', () => {
   it('детермінований: той самий seed дає той самий світ', () => {
@@ -73,5 +74,39 @@ describe('прогін сезону', () => {
         .toBeGreaterThanOrEqual((world.news[i - 1] as { day: number }).day);
     }
     expect(formatIso(world.day)).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('світ день за днем (тиждень гравця в поданні)', () => {
+  it('simulateDay крок за кроком дає той самий світ, що й runSeason одним викликом', () => {
+    let start = buildWorld(2026, 400);
+    start = startCareer(start, Object.keys(start.fighters)[3] as string);
+    const once = runSeason(start, 120);
+
+    // Ті самі рішення, тим самим годинником, але з паузою після кожного дня —
+    // саме так кнопка «Далі» веде світ у демо.
+    const clock = startSeasonClock(start);
+    let current = start;
+    for (let d = 0; d < 120; d++) current = simulateDay(current, clock, decide(current)).world;
+
+    expect(JSON.stringify(current)).toBe(JSON.stringify(once.world));
+  });
+
+  it('без відповідей гравця рішення згорають за дедлайном, а не висять вічно', () => {
+    let start = buildWorld(77, 400);
+    const id = Object.keys(start.fighters)[5] as string;
+    start = startCareer(start, id);
+    const clock = startSeasonClock(start);
+    let current = start;
+    // Ніхто не відповідає: пропозиції мусять згорати за дедлайном, а не висіти вічно.
+    let pendingSeen = 0;
+    for (let d = 0; d < 150; d++) {
+      current = simulateDay(current, clock, []).world;
+      pendingSeen = Math.max(pendingSeen, current.decisions.length);
+    }
+    expect(pendingSeen).toBeGreaterThan(0);
+    for (const decision of current.decisions) {
+      expect(decision.deadline).toBeGreaterThanOrEqual(current.day);
+    }
   });
 });

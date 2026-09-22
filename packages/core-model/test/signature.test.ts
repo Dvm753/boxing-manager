@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { ALL_ATTRIBUTES, type Attributes } from '../src/attributes.js';
-import { attackSignatures, ATTACK_SIGNATURES } from '../src/signature.js';
+import {
+  attackSignatures, ATTACK_SIGNATURES, defenseSignatures, DEFENSE_SIGNATURES,
+} from '../src/signature.js';
 
 /**
  * Коронні прийоми атаки (Q34) — похідна від атрибутів, як `styleLabel` від осей.
@@ -82,5 +84,67 @@ describe('коронні прийоми атаки (Q34)', () => {
     const seen = new Set<string>();
     for (const attrs of profiles) for (const s of attackSignatures(attrs)) seen.add(s);
     for (const sig of ATTACK_SIGNATURES) expect(seen.has(sig), sig).toBe(true);
+  });
+});
+
+describe('коронні прийоми оборони (Q34, друга частина)', () => {
+  it('рівний профіль — жодного оборонного прийому', () => {
+    expect(defenseSignatures(baseline())).toEqual([]);
+  });
+
+  it('рух головою, що випереджає решту оборони, дає headMover', () => {
+    const attrs = baseline({ headMovement: 17, blocking: 9, footwork: 9, defensiveDiscipline: 9, anticipation: 9 });
+    expect(defenseSignatures(attrs)).toContain('headMover');
+  });
+
+  it('блок, що випереджає решту оборони, дає highGuard', () => {
+    const attrs = baseline({ headMovement: 9, blocking: 17, footwork: 9, defensiveDiscipline: 9, anticipation: 9 });
+    expect(defenseSignatures(attrs)).toContain('highGuard');
+  });
+
+  it('підставка плеча вимагає і блок, і голову, і контрудар', () => {
+    const noCounter = baseline({ headMovement: 14, blocking: 14, footwork: 8, defensiveDiscipline: 8, anticipation: 8, counterPunching: 5 });
+    const withCounter = { ...noCounter, counterPunching: 14 };
+    expect(defenseSignatures(noCounter)).not.toContain('shoulderRoll');
+    expect(defenseSignatures(withCounter)).toContain('shoulderRoll');
+  });
+
+  it('різка кутів — ноги понад решту оборони і розуміння рингу', () => {
+    const noIq = baseline({ footwork: 17, headMovement: 9, blocking: 9, defensiveDiscipline: 9, anticipation: 9, ringIq: 5 });
+    expect(defenseSignatures(noIq)).not.toContain('angleCutter');
+    expect(defenseSignatures({ ...noIq, ringIq: 12 })).toContain('angleCutter');
+  });
+
+  it('клінчер — клінч сильніший за решту його оборони, а не просто високий', () => {
+    const allHigh = baseline({ clinching: 16, headMovement: 16, blocking: 16, footwork: 16, defensiveDiscipline: 16, anticipation: 16 });
+    const clinchFirst = baseline({ clinching: 16, ringIq: 12 });
+    expect(defenseSignatures(allHigh)).not.toContain('clincher');
+    expect(defenseSignatures(clinchFirst)).toContain('clincher');
+  });
+
+  it('відхід із контратакою — голова, контрудар і холоднокровність разом', () => {
+    const attrs = baseline({ headMovement: 13, counterPunching: 15, composure: 15 });
+    expect(defenseSignatures(attrs)).toContain('pullCounter');
+    expect(defenseSignatures({ ...attrs, composure: 8 })).not.toContain('pullCounter');
+  });
+
+  it('атака й оборона незалежні: можна мати обидва типи одночасно', () => {
+    const attrs = baseline({ jab: 18, cross: 8, hook: 8, uppercut: 8, bodyPunching: 8, headMovement: 17 });
+    expect(attackSignatures(attrs)).toContain('jabSpecialist');
+    expect(defenseSignatures(attrs)).toContain('headMover');
+  });
+
+  it('усі шість оборонних прийомів досяжні', () => {
+    const profiles: Attributes[] = [
+      baseline({ headMovement: 17 }),
+      baseline({ blocking: 17 }),
+      baseline({ headMovement: 14, blocking: 14, footwork: 8, defensiveDiscipline: 8, anticipation: 8, counterPunching: 14 }),
+      baseline({ footwork: 17, ringIq: 12 }),
+      baseline({ clinching: 16, ringIq: 12 }),
+      baseline({ headMovement: 13, counterPunching: 15, composure: 15 }),
+    ];
+    const seen = new Set<string>();
+    for (const attrs of profiles) for (const s of defenseSignatures(attrs)) seen.add(s);
+    for (const sig of DEFENSE_SIGNATURES) expect(seen.has(sig), sig).toBe(true);
   });
 });

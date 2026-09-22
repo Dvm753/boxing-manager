@@ -126,7 +126,7 @@
       <span class="kv" id="barDate"></span>
       <span class="kv" id="barCount"></span>
       <span class="grow"></span>
-      <button class="act" id="runseason" data-i18n="ui.simulate">Симулювати сезон</button>
+      <button class="act" id="runseason" data-i18n="ui.next">Далі</button>
     </div>
 
     <section id="sec-world">
@@ -193,9 +193,13 @@
     <section id="sec-career" hidden>
       <h1 data-i18n="nav.career">Кар'єра</h1>
       <div class="panel">
+        <h3 style="margin:0 0 8px;font-size:13px" data-i18n="ui.decisionsPending">Рішення, що чекають на вас</h3>
+        <div id="decisionsout"></div>
+      </div>
+      <div class="panel">
         <h3 style="margin:0 0 8px;font-size:13px" data-i18n="ui.myCampPlan">Мій план табору</h3>
         <div class="row" id="campplan"></div>
-        <div class="note" data-i18n="ui.campPlanNote">План застосовується до кожного табору підопічного під час прогону сезону.</div>
+        <div class="note" data-i18n="ui.campPlanNote">Ці значення пропонуються за замовчуванням у рішеннях табору й плану на бій.</div>
       </div>
       <div class="panel">
         <h3 style="margin:0 0 8px;font-size:13px" data-i18n="ui.myFighter">Мій боєць</h3>
@@ -246,7 +250,7 @@
           <li class="yes">Стайбл гравця — <code>ADR-0024</code>: до трьох бійців; боєць, про якого забули,
               шукає бій сам, тож порожніх років більше немає</li>
           <li class="yes">Тиждень гравця — <code>ADR-0023</code>: пропозиції боїв, три фази табору, план на бій</li>
-          <li class="no">Щоденної гри з паузою на кожне рішення — план табору тут задається наперед</li>
+          <li class="yes">Тиждень за тижнем — кнопка «Далі»: гравець сам відповідає на пропозиції боїв, фази табору й план на бій; світ один і живий</li>
           <li class="no">Це не гра, а інструмент спостереження за симуляцією</li>
         </ul>
       </div>
@@ -346,10 +350,22 @@
   function build(){
     var seed = parseInt(document.getElementById('seed').value,10)||0;
     var count = Math.max(50, Math.min(6000, parseInt(document.getElementById('count').value,10)||600));
-    world = BM.generateWorld(seed, count);
-    world.fighters.forEach(function(f){ f._avg=avg(f); f._wc=WC[f.constants.naturalWeightClassId]; });
-    selId=null; slotA=null; slotB=null; season=null;
+    // Один живий світ на всю сесію (аудит §4.2): таблиця, картка, бій, кар'єра, сейв — усе з нього.
+    season = BM.newWorld(seed, count);
+    myIds = [];
+    selId=null; slotA=null; slotB=null;
+    refreshWorld();
     renderAll();
+  }
+
+  // Бійці перечитуються з живого світу після кожної зміни: рекорд, форма, знос
+  // і останні бої в таблиці й картці — поточні, а не з моменту генерації.
+  function refreshWorld(){
+    world = { fighters: BM.worldFighters() };
+    var byId = {};
+    world.fighters.forEach(function(f){ f._avg=avg(f); f._wc=WC[f.constants.naturalWeightClassId]; byId[f.id]=f; });
+    if(slotA) slotA = byId[slotA.id] || null;
+    if(slotB) slotB = byId[slotB.id] || null;
   }
   document.getElementById('go').addEventListener('click', build);
 
@@ -360,7 +376,7 @@
     });
   }
 
-  function renderAll(){ renderBar(); renderTable(); renderCard(); renderFight(); renderForm(); renderCampPlan(); renderStable(); renderNews(); renderRankings(); }
+  function renderAll(){ renderBar(); renderTable(); renderCard(); renderFight(); renderForm(); renderCampPlan(); renderDecisions(); renderStable(); renderNews(); renderRankings(); }
 
   function renderBar(){
     document.getElementById('barDate').innerHTML =
@@ -446,7 +462,30 @@
       : sigs.map(function(s){
           return '<span class="rtab" style="cursor:default" aria-current="true">'+esc(t('signature.'+s))+'</span>';
         }).join(' ');
-    return '<div class="attrgrp"><h3>'+t('ui.signatures')+'</h3><div class="row" style="flex-wrap:wrap;gap:6px">'+badges+'</div></div>';
+    return '<div class="attrgrp"><h3>'+t('ui.signatures')+'</h3><div class="row" style="flex-wrap:wrap;gap:6px">'+badges+'</div></div>'+
+      defenseSignaturesBlock(f);
+  }
+  // Коронні прийоми оборони (Q34, друга частина) — окремий ряд, незалежний від атаки.
+  function defenseSignaturesBlock(f){
+    var sigs = BM.defenseSignatures(f.attributes);
+    var badges = sigs.length===0
+      ? '<span class="meta">'+t('ui.noSignature')+'</span>'
+      : sigs.map(function(s){
+          return '<span class="rtab" style="cursor:default" aria-current="true">'+esc(t('signature.'+s))+'</span>';
+        }).join(' ');
+    return '<div class="attrgrp"><h3>'+t('ui.defenseSignatures')+'</h3><div class="row" style="flex-wrap:wrap;gap:6px">'+badges+'</div></div>';
+  }
+
+  // Останні бої цього бійця в живому світі — картка оновлюється після кожного «Далі».
+  function historyBlock(f){
+    var h = f.history || [];
+    var rowsHtml = h.length
+      ? h.map(function(x){
+          return '<div class="newsrow">'+x.date+' — '+esc(x.opponentName)+' · '+esc(t('method.'+x.method))+' · '+
+            (x.won===null ? t('ui.draw') : (x.won ? 'W' : 'L'))+' ('+x.endingRound+')</div>';
+        }).join('')
+      : '<div class="meta">'+t('ui.noFightsYet')+'</div>';
+    return '<div class="attrgrp"><h3>'+t('ui.recentFights')+'</h3>'+rowsHtml+'</div>';
   }
 
   function renderCard(){
@@ -462,6 +501,8 @@
         ' · '+t('ui.reach')+' '+BM.formatLength(f.constants.reachCm,S,t('unit.cm'))+
         ' · '+BM.formatWeight(f.condition.weightKg,S,t('unit.kg'),t('unit.lb'))+'<br>'+
         t('ui.record')+' '+f.record.wins+'–'+f.record.losses+'–'+f.record.draws+' ('+f.record.knockouts+' KO)'+
+        (season && f.unavailableUntil && f.unavailableUntil>season.day
+          ? '<br><b style="color:var(--accent)">'+t('ui.unavailableUntil')+' '+BM.formatIso(f.unavailableUntil)+'</b>' : '')+
       '</div>'+
       '<div class="row" style="margin-bottom:12px">'+
         '<button class="act" id="pickA">'+t('ui.pickA')+'</button>'+
@@ -479,13 +520,14 @@
         gauge(t('ui.headWear'), f.wear.headTrauma)+
         '<div class="attr"><span class="nm">'+t('ui.roundsBoxed')+'</span><span class="v" style="width:auto">'+f.wear.roundsBoxed+'</span></div>'+
       '</div>'+
+      historyBlock(f)+
       '<div class="note">'+t('ui.potentialRange')+': <b>'+f.potentialRange[0]+'–'+f.potentialRange[1]+
       '</b> — '+t('ui.rangeNotNumber')+'.<br>'+t('ui.hiddenAttributes')+'</div>';
     document.getElementById('pickA').addEventListener('click', function(){ slotA=f; fightRound=1; show('fight'); renderFight(); });
     document.getElementById('pickB').addEventListener('click', function(){ slotB=f; fightRound=1; show('fight'); renderFight(); });
     document.getElementById('pickMine').addEventListener('click', function(){
-      if(myIds.indexOf(f.id)<0 && myIds.length<MAX_STABLE) myIds.push(f.id);
-      season=null; renderCard(); renderStable(); show('career');
+      if(myIds.indexOf(f.id)<0 && myIds.length<MAX_STABLE){ myIds.push(f.id); season = BM.takeUnderCare(f.id); }
+      renderCard(); renderDecisions(); renderStable(); show('career');
     });
   }
   function gauge(label, v){
@@ -612,14 +654,38 @@
     var lines = BM.buildCommentary(out.eventLog).filter(function(l){
       return fightRound === null ? true : l.round === fightRound;
     });
-    var pbp = lines.map(function(l){
+    // Порада кута між раундами (ADR-0028) — рядком у самому репортажі, одразу після
+    // раунду, по якому її дали: так її видно в ту мить, коли кут її каже.
+    function adviceAxes(x){
+      return Object.keys(x.axisAdjustments).map(function(ax){
+        var d = x.axisAdjustments[ax];
+        return esc(t('axis.'+ax))+' '+(d>0?'+':'')+d;
+      }).join(', ');
+    }
+    function adviceTip(x){
+      var adj = x.axisAdjustments;
+      if(adj.punchVolume !== undefined && adj.punchVolume < 0) return t('ui.cornerTip.save');
+      return adj.risk > 0 ? t('ui.cornerTip.press') : t('ui.cornerTip.calm');
+    }
+    function adviceLine(x){
+      return '<div class="ln big" style="color:var(--accent)">'+
+        t('ui.cornerSays', { name: esc(names[x.by]) })+' «'+adviceTip(x)+'» ('+adviceAxes(x)+')</div>';
+    }
+    var lastIdxOfRound = {};
+    lines.forEach(function(l, i){ if(l.round!==null && l.round!==undefined) lastIdxOfRound[l.round] = i; });
+    var pbp = lines.map(function(l, i){
+      var after = '';
+      if(advisorOn && lastIdxOfRound[l.round]===i){
+        after = out.advice.filter(function(x){ return x.round===l.round && x.round<rounds.length; })
+          .map(adviceLine).join('');
+      }
       var cls='ln';
       if(l.key==='commentary.roundStart') cls+=' hd';
       else if(l.key==='commentary.knockdown' || l.key==='commentary.foul.penalty'
               || l.key.indexOf('commentary.stoppage.')===0
               || l.key.indexOf('commentary.decision.')===0) cls+=' big';
       else if(l.key==='commentary.roundSummary' || l.key==='commentary.roundEnd') cls+=' dim';
-      return '<div class="'+cls+'">'+mmss(l.second)+esc(BM.renderLine(T,l,names))+'</div>';
+      return '<div class="'+cls+'">'+mmss(l.second)+esc(BM.renderLine(T,l,names))+'</div>'+after;
     }).join('');
 
     // Картка **кожного** судді за раунд, а не лише першого з трьох (закриває Q31).
@@ -631,8 +697,15 @@
 
     // Поради кута, застосовані під час бою (ADR-0028) — лише вже переглянуті раунди.
     var visibleAdvice = out.advice.filter(function(x){ return x.round <= revealed; });
+    // Сценарій B не зсуває осей, тож за ADR-0028 кут цієї сторони не має меж для порад —
+    // кажемо про це прямо, щоб тиша кута не виглядала як поломка.
+    var silentCorners = ['a','b'].filter(function(side){
+      return Object.keys(BM.STRATEGY_SCENARIO_AXES[strategy[side].scenario]).length===0;
+    }).map(function(side){
+      return '<div class="ln dim">'+t('ui.cornerNoRoom', { name: esc(names[side]) })+'</div>';
+    }).join('');
     var adviceList = !advisorOn ? '' :
-      '<div class="sub">'+t('ui.cornerAdviceGiven')+'</div><div class="pbp">'+
+      '<div class="sub">'+t('ui.cornerAdviceGiven')+'</div><div class="pbp">'+silentCorners+
       (visibleAdvice.length===0 ? '<div class="ln dim">'+t('ui.noCornerAdvice')+'</div>' :
         visibleAdvice.map(function(x){
           var axes = Object.keys(x.axisAdjustments).map(function(ax){
@@ -653,6 +726,7 @@
       : '<div style="font-size:17px;font-weight:650;margin-bottom:10px">'+t('ui.round')+' '+fightRound+' / '+rounds.length+'</div>';
     el.innerHTML =
       '<div class="meta" style="margin-bottom:6px">A: '+esc(slotA.name)+'  ·  B: '+esc(slotB.name)+'</div>'+
+      '<div class="note" style="margin:0 0 10px">'+t('ui.exhibitionNote')+'</div>'+
       strategyPanel+
       header+
       '<div class="rtabs">'+tabs+'</div>'+
@@ -707,17 +781,75 @@
     });
   }
 
-  // ── сезон ───────────────────────────────────────────────────────────────
+  // ── тиждень за тижнем ────────────────────────────────────────────────────
+  // «Далі» просуває світ до семи днів і зупиняється раніше, щойно в підопічного
+  // з'являється нове рішення — гравець вирішує сам, а не авто-політика за рік.
+  var lastWeek = null;
   document.getElementById('runseason').addEventListener('click', function(){
     var btn=document.getElementById('runseason'); btn.disabled=true;
     setTimeout(function(){
-      var n = Math.max(50, Math.min(6000, parseInt(document.getElementById('count').value,10)||600));
-      season = BM.simulateSeason(parseInt(document.getElementById('seed').value,10)||0, n, 365,
-        myIds, myIds.length ? policy : undefined);
-      btn.disabled=false; renderBar(); renderForm(); renderStable(); renderNews(); renderRankings();
-      show(myIds.length ? 'career' : 'world');
+      season = BM.advanceWeek();
+      lastWeek = { days: season.daysAdvanced, fights: season.playerFights };
+      refreshWorld();
+      btn.disabled=false;
+      renderAll();
+      if(season.decisions.length || season.playerFights.length) show('career');
     }, 20);
   });
+
+  // Рішення підопічних (ADR-0020, ADR-0023). Значення за замовчуванням — з «Мого плану
+  // табору»; відповідь застосовується на початку наступного дня, як і в світі.
+  function renderDecisions(){
+    var el=document.getElementById('decisionsout');
+    if(!el) return;
+    var week = !lastWeek ? '' :
+      '<div class="meta" style="margin-bottom:8px">'+t('ui.weekResult', { days: lastWeek.days })+'</div>'+
+      (lastWeek.fights.length ? '<div class="sub">'+t('ui.playerFightsThisWeek')+'</div>'+
+        lastWeek.fights.map(function(f){
+          return '<div class="newsrow">'+f.date+' — '+esc(f.fighterName)+' · '+esc(f.opponentName)+' · '+
+            esc(t('method.'+f.method))+' · '+(f.won===null ? t('ui.draw') : (f.won ? 'W' : 'L'))+' ('+f.endingRound+')</div>';
+        }).join('') : '');
+    var list = (season && season.decisions) || [];
+    if(!list.length){ el.innerHTML = week+'<div class="meta">'+t('ui.noDecisions')+'</div>'; return; }
+    el.innerHTML = week + list.map(function(d){
+      var head, controls;
+      if(d.t==='fightOffer'){
+        head = t('ui.decision.offer', { fighter: esc(d.fighterName), opponent: esc(d.opponentName), date: d.date })+
+          (d.titleKey ? ' · <b style="color:var(--accent)">'+t('ui.titleFight')+'</b>' : '');
+        controls = '<button class="act" data-dec="'+d.id+'" data-cmd="acceptOffer">'+t('ui.accept')+'</button>'+
+          '<button class="act" data-dec="'+d.id+'" data-cmd="declineOffer">'+t('ui.decline')+'</button>';
+      } else if(d.t==='campPhase'){
+        var def = policy.camp[d.phase] || {};
+        head = t('ui.decision.campPhase', { fighter: esc(d.fighterName), phase: esc(t('camp.phase.'+d.phase)) });
+        controls = '<select data-dec-focus="'+d.id+'">'+BM.CAMP_FOCUSES_BY_PHASE[d.phase].map(function(f){
+            return '<option value="'+f+'"'+(def.focus===f?' selected':'')+'>'+esc(t('camp.focus.'+f))+'</option>'; }).join('')+'</select>'+
+          '<select data-dec-load="'+d.id+'">'+BM.CAMP_LOADS.map(function(l){
+            return '<option value="'+l+'"'+(def.load===l?' selected':'')+'>'+esc(t('camp.load.'+l))+'</option>'; }).join('')+'</select>'+
+          '<button class="act" data-dec="'+d.id+'" data-cmd="setCampPhase">'+t('ui.confirm')+'</button>';
+      } else {
+        head = t('ui.decision.fightPlan', { fighter: esc(d.fighterName), opponent: esc(d.opponentName) });
+        controls = '<select data-dec-plan="'+d.id+'">'+BM.FIGHT_PLANS.map(function(p){
+            return '<option value="'+p+'"'+(policy.plan===p?' selected':'')+'>'+esc(t('plan.'+p))+'</option>'; }).join('')+'</select>'+
+          '<button class="act" data-dec="'+d.id+'" data-cmd="setFightPlan">'+t('ui.confirm')+'</button>';
+      }
+      return '<div class="newsrow" style="padding:8px 0">'+head+
+        ' <span class="meta">· '+t('ui.deadline', { date: d.deadline })+'</span>'+
+        '<div class="row" style="gap:6px;margin-top:6px">'+controls+'</div></div>';
+    }).join('');
+    el.querySelectorAll('button[data-dec]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var id=b.getAttribute('data-dec'), cmd=b.getAttribute('data-cmd'), c={ t: cmd, decisionId: id };
+        if(cmd==='setCampPhase'){
+          c.focus = el.querySelector('[data-dec-focus="'+id+'"]').value;
+          c.load = el.querySelector('[data-dec-load="'+id+'"]').value;
+        } else if(cmd==='setFightPlan'){
+          c.plan = el.querySelector('[data-dec-plan="'+id+'"]').value;
+        }
+        season = BM.answerDecision(c);
+        renderDecisions(); renderStable();
+      });
+    });
+  }
 
   // «Ще раз» — той самий бій іншого вечора. Показує, що результат не визначений наперед:
   // змінюється лише потік випадковості, бійці й налаштування ті самі.
@@ -941,9 +1073,13 @@
       var res = BM.importCareer(String(reader.result));
       if(!res.ok){ careerInfo(t('ui.loadError', { message: res.message })); return; }
       season = res.season;
+      // Відкрита кар'єра стає живим світом: «Далі» продовжує саме її.
+      myIds = (season.stable || []).map(function(v){ return v.fighterId; });
+      lastWeek = null;
+      refreshWorld();
       careerInfo(t('ui.saveInfo', { day: season.date, fighters: res.summary.fighterCount,
         fights: res.summary.fightsRecorded }));
-      renderBar(); renderNews(); renderRankings();
+      renderAll();
     };
     reader.readAsText(file);
     e.target.value = '';

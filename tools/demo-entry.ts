@@ -14,7 +14,9 @@ import {
   TECHNICAL_ATTRIBUTES, PHYSICAL_ATTRIBUTES, MENTAL_ATTRIBUTES,
 } from '../packages/core-model/src/attributes.js';
 import { STYLE_AXES, styleLabel, type StyleAxes, type StyleAxis } from '../packages/core-model/src/style.js';
-import { ATTACK_SIGNATURES, attackSignatures } from '../packages/core-model/src/signature.js';
+import {
+  ATTACK_SIGNATURES, attackSignatures, DEFENSE_SIGNATURES, defenseSignatures,
+} from '../packages/core-model/src/signature.js';
 import { createRng, deriveSeed } from '../packages/core-model/src/rng.js';
 import {
   simulateFight, simulateFightSteps, buildCommentary, buildRoundStats, totalStats, accuracy,
@@ -22,11 +24,15 @@ import {
 } from '../packages/engine-fight/src/index.js';
 import { coachSuitability } from '../packages/ai/src/index.js';
 import { toSnapshot, makeJudges } from '../packages/sim-cli/src/calibrate.js';
-import { buildWorld, runSeason } from '../packages/sim-cli/src/season.js';
+import {
+  buildWorld, runSeason, simulateDay, startSeasonClock, type SeasonClock,
+} from '../packages/sim-cli/src/season.js';
 import {
   saveCareer, loadCareer, describeSave, startCareer, playerStable,
 } from '../packages/session/src/index.js';
-import { buildTierIndex, formatIso, rankingKey, nextFightIndex } from '../packages/engine-world/src/index.js';
+import {
+  buildTierIndex, formatIso, rankingKey, nextFightIndex, type PlayerCommand, type World,
+} from '../packages/engine-world/src/index.js';
 import {
   createTranslator, LOCALES, LOCALE_NAMES, UNIT_SYSTEMS, THEMES,
   formatLength, formatWeight, formatMoney, renderLine,
@@ -215,7 +221,7 @@ function simulateSeason(
   let start = base;
   for (const id of playerIds ?? []) start = startCareer(start, id);
   const season = runSeason(start, days, undefined, policy as never);
-  lastWorld = season.world;
+  resetLive(season.world);
   return {
     ...(summarise(season.world, season.fightsHeld, season.byTier) as object),
     decisionsMade: season.decisionsMade,
@@ -237,19 +243,154 @@ function exportCareer(): { text: string; summary: unknown } | null {
 function importCareer(text: string): { ok: true; summary: unknown; season: unknown } | { ok: false; message: string } {
   try {
     const world = loadCareer(text);
-    lastWorld = world;
-    return { ok: true, summary: describeSave(text), season: summarise(world, 0, { 1: 0, 2: 0, 3: 0 }) };
+    resetLive(world);
+    return { ok: true, summary: describeSave(text), season: liveSummary() };
   } catch (error) {
     return { ok: false, message: (error as Error).message };
   }
 }
 
+// ── Живий світ: один на всю сесію, крок — день, гравець вирішує сам ────────
+// Аудит ядра §4.2: доти таблиця бійців показувала світ до сезону, а сезон жив окремо.
+// Тепер таблиця, картка, показовий бій, кар'єра й збереження читають той самий `lastWorld`.
+
+type DecisionCommand = Exclude<PlayerCommand, { t: 'scheduleFight' }>;
+
+let clock: SeasonClock | null = null;
+let liveFights = 0;
+let liveTiers: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+let liveDecisions = 0;
+/** Відповіді гравця застосовуються на початку наступного дня — так само, як авто-політика. */
+let queued: DecisionCommand[] = [];
+const answered = new Set<string>();
+
+function resetLive(world: World): void {
+  lastWorld = world;
+  clock = startSeasonClock(world);
+  liveFights = 0;
+  liveTiers = { 1: 0, 2: 0, 3: 0 };
+  liveDecisions = 0;
+  queued = [];
+  answered.clear();
+}
+
+function namesOf(world: World): Record<string, string> {
+  const names: Record<string, string> = {};
+  for (const f of Object.values(world.fighters)) names[f.id] = f.name;
+  return names;
+}
+
+/** Рішення підопічних, на які гравець ще не відповів (ADR-0020, ADR-0023). */
+function pendingDecisions(): unknown[] {
+  const world = lastWorld;
+  if (!world) return [];
+  const names = namesOf(world);
+  return world.decisions
+    .filter((d) => world.playerFighterIds.includes(d.fighterId) && !answered.has(d.id))
+    .map((d) => {
+      const base = { id: d.id, t: d.t, fighterName: names[d.fighterId] ?? '—', deadline: formatIso(d.deadline) };
+      if (d.t === 'fightOffer') {
+        const opponentId = d.fight.aId === d.fighterId ? d.fight.bId : d.fight.aId;
+        return {
+          ...base, opponentName: names[opponentId] ?? '—', date: formatIso(d.fight.day),
+          titleKey: d.fight.titleKey ?? null,
+        };
+      }
+      if (d.t === 'campPhase') return { ...base, phase: d.phase };
+      return { ...base, opponentName: names[d.opponentId] ?? '—' };
+    });
+}
+
+function liveSummary(): unknown {
+  if (!lastWorld) return null;
+  return {
+    ...(summarise(lastWorld, liveFights, liveTiers) as object),
+    decisionsMade: liveDecisions,
+    decisions: pendingDecisions(),
+  };
+}
+
+function newWorld(seed: number, fighters: number): unknown {
+  resetLive(buildWorld(seed, fighters));
+  return liveSummary();
+}
+
+/**
+ * Бійці живого світу з історією боїв — таблиця й картка показують **поточний** стан:
+ * рекорд, форму, знос і останні бої оновлюються після кожного бою.
+ */
+function worldFighters(): unknown[] {
+  const world = lastWorld;
+  if (!world) return [];
+  const names = namesOf(world);
+  return Object.values(world.fighters).map((f) => ({
+    ...f,
+    unavailableUntil: world.unavailableUntil[f.id] ?? null,
+    history: (world.history[f.id] ?? []).slice(-6).reverse().map((h) => ({
+      ...h, opponentName: names[h.opponentId] ?? '—', date: formatIso(h.day),
+    })),
+  }));
+}
+
+function takeUnderCare(fighterId: string): unknown {
+  if (!lastWorld) return null;
+  lastWorld = startCareer(lastWorld, fighterId);
+  return liveSummary();
+}
+
+function answerDecision(command: DecisionCommand): unknown {
+  queued.push(command);
+  answered.add(command.decisionId);
+  liveDecisions++;
+  return liveSummary();
+}
+
+/**
+ * «Далі»: до семи днів світу. Зупиняється раніше, щойно в підопічного з'являється нове
+ * рішення — інакше дводенний дедлайн фази табору минав би всередині тижня без гравця.
+ */
+function advanceWeek(): unknown {
+  if (!lastWorld || !clock) return null;
+  const seen = new Set(lastWorld.decisions.map((d) => d.id));
+  const names = namesOf(lastWorld);
+  const playerFights: unknown[] = [];
+  let daysAdvanced = 0;
+
+  for (let d = 0; d < 7; d++) {
+    const commands = queued;
+    queued = [];
+    const { world, events } = simulateDay(lastWorld, clock, commands);
+    lastWorld = world;
+    daysAdvanced++;
+    for (const event of events) {
+      if (event.t !== 'FightCompleted') continue;
+      liveFights++;
+      liveTiers[event.tier] = (liveTiers[event.tier] ?? 0) + 1;
+      const mine = world.playerFighterIds.find((id) => id === event.aId || id === event.bId);
+      if (mine === undefined) continue;
+      const opponentId = mine === event.aId ? event.bId : event.aId;
+      playerFights.push({
+        fighterName: names[mine] ?? '—', opponentName: names[opponentId] ?? '—',
+        date: formatIso(event.day), method: event.method, endingRound: event.endingRound,
+        won: event.winnerId === null ? null : event.winnerId === mine,
+      });
+    }
+    const fresh = world.decisions.some((x) => !seen.has(x.id) && world.playerFighterIds.includes(x.fighterId));
+    if (fresh) break;
+  }
+
+  const open = new Set(lastWorld.decisions.map((d) => d.id));
+  for (const id of [...answered]) if (!open.has(id)) answered.delete(id);
+  return { ...(liveSummary() as object), daysAdvanced, playerFights };
+}
+
 window.BM = {
   generateWorld, WEIGHT_CLASSES, SANCTIONING_BODIES, CURRENCIES, STYLE_AXES, styleLabel,
-  ATTACK_SIGNATURES, attackSignatures,
+  ATTACK_SIGNATURES, attackSignatures, DEFENSE_SIGNATURES, defenseSignatures,
   CAMP_PHASES, CAMP_LOADS, CAMP_FOCUSES_BY_PHASE, FIGHT_PLANS,
-  STRATEGY_PLANS, STRATEGY_SCENARIOS, STRATEGY_PLAN_SUITABILITY, coachAdvice,
+  STRATEGY_PLANS, STRATEGY_SCENARIOS, STRATEGY_PLAN_SUITABILITY, STRATEGY_SCENARIO_AXES, coachAdvice,
   runFight, simulateSeason, exportCareer, importCareer, formatIso,
+  newWorld, worldFighters, takeUnderCare, answerDecision, advanceWeek, liveSummary,
   buildCommentary, buildRoundStats, totalStats, accuracy, renderLine,
   createTranslator, LOCALES, LOCALE_NAMES, UNIT_SYSTEMS, THEMES,
   formatLength, formatWeight, formatMoney,

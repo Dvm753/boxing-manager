@@ -1,4 +1,7 @@
-import { attackSignatures, normalize, type AttackSignature, type Rng, type StyleAxes } from '@bm/core-model';
+import {
+  attackSignatures, defenseSignatures, normalize,
+  type AttackSignature, type DefenseSignature, type Rng, type StyleAxes,
+} from '@bm/core-model';
 import { scoreRound, resolveDecision, type RoundPerception } from './judging.js';
 import { TUNING } from './tuning.js';
 import type {
@@ -31,6 +34,8 @@ interface FighterState {
   fouls: Record<FoulKind, number>;
   /** Коронні прийоми атаки (Q34) — похідна від атрибутів, рахується раз на бій. */
   signatures: readonly AttackSignature[];
+  /** Коронні прийоми оборони (Q34, друга частина) — так само похідна, раз на бій. */
+  defenseSignatures: readonly DefenseSignature[];
   stats: FightStats;
 }
 
@@ -74,6 +79,25 @@ function chooseAction(f: FighterState, position: Position, rng: Rng): PunchType 
   return rng.next() < crossRatio ? 'cross' : 'hook';
 }
 
+/**
+ * Коронний прийом оборони (Q34): невеликий бонус до `defence` проти саме тих ударів,
+ * від яких цей прийом захищає в реальному боксі. Не нова випадковість — лише зсув.
+ */
+function defenseSignatureBonus(sigs: readonly DefenseSignature[], punch: PunchType): number {
+  if (sigs.length === 0) return 0;
+  const bonus = TUNING.defenseSignature.defenceBonus;
+  let total = 0;
+  // Ухилення головою — проти будь-якого удару в голову, не по корпусу.
+  if (punch !== 'bodyShot' && sigs.includes('headMover')) total += bonus;
+  // Глухий блок — проти бокових і знизу, що йдуть у рукавички.
+  if ((punch === 'hook' || punch === 'uppercut') && sigs.includes('highGuard')) total += bonus;
+  // Підставка плеча — плече приймає прямий правий.
+  if (punch === 'cross' && sigs.includes('shoulderRoll')) total += bonus;
+  // Відхід із контратакою — назад від джеба.
+  if (punch === 'jab' && sigs.includes('pullCounter')) total += bonus;
+  return total;
+}
+
 function resolveQuality(
   attacker: FighterState, defender: FighterState, punch: PunchType, position: Position, rng: Rng,
 ): LandQuality {
@@ -101,13 +125,17 @@ function resolveQuality(
     a01(def.blocking) * 0.24 +
     a01(def.defensiveDiscipline) * 0.18 +
     a01(def.anticipation) * 0.16 +
-    a01(def.footwork) * 0.14;
+    a01(def.footwork) * 0.14 +
+    defenseSignatureBonus(defender.defenseSignatures, punch);
 
   const attackerFatigue = (attacker.stamina / 100) * attacker.form;
   const defenderFatigue = defender.stamina / 100;
   const reachEdge = (attacker.snap.reachCm - defender.snap.reachCm) / 100;
   const positionBonus = position === 'ropes' || position === 'inside' ? 0.06 : 0;
-  const stunBonus = defender.stunned > 0 ? 0.22 : 0;
+  // Клінчер у важку мить зв'язує руки суперника — приголомшення карає його менше.
+  const stunBonus = defender.stunned > 0
+    ? 0.22 * (defender.defenseSignatures.includes('clincher') ? 1 - TUNING.defenseSignature.clinchStunRelief : 1)
+    : 0;
 
   const chance =
     TUNING.baseLandChance[punch]
@@ -150,7 +178,9 @@ function nextPosition(a: FighterState, b: FighterState, current: Position, rng: 
     case 'clinch': return roll < 0.75 ? 'mid' : 'inside';
     case 'ropes': {
       // Вихід із канатів — окремий атрибут (ADR-0010).
-      const escape = a01(b.snap.attributes.ringEscape) * 0.55 + a01(b.snap.attributes.footwork) * 0.3;
+      // Різка кутів (Q34): виходить убік, а не назад — з канатів вибирається частіше.
+      const escape = a01(b.snap.attributes.ringEscape) * 0.55 + a01(b.snap.attributes.footwork) * 0.3
+        + (b.defenseSignatures.includes('angleCutter') ? TUNING.defenseSignature.ropesEscape : 0);
       return roll < 0.25 + escape * 0.5 ? 'mid' : 'ropes';
     }
     default: return 'mid';
@@ -180,7 +210,8 @@ export function* simulateFightSteps(
     stamina: 55 + snap.freshness * 0.45,
     knockdownsThisRound: 0, knockdownsTotal: 0, stunned: 0, cuts: 0,
     fouls: { 'low-blow': 0, holding: 0, headbutt: 0 },
-    signatures: attackSignatures(snap.attributes), stats: emptyStats(),
+    signatures: attackSignatures(snap.attributes),
+    defenseSignatures: defenseSignatures(snap.attributes), stats: emptyStats(),
   });
   const fa = mk(a, 'a');
   const fb = mk(b, 'b');
