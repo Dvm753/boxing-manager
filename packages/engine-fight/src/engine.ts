@@ -34,11 +34,18 @@ interface FighterState {
   stats: FightStats;
 }
 
-/** Осі бійця, перекриті планом на цей раунд (ADR-0014). */
+/**
+ * Осі бійця на цей раунд (ADR-0014): `baseAxes` — вже результуючі осі на бій,
+ * `axisAdjustments` блоку — **зсуви** поверх них (так і сказано в контракті ADR-0014),
+ * з утриманням у шкалі 1–20.
+ */
 function axesForRound(base: StyleAxes, plan: FightPlan, round: number): StyleAxes {
   const axes = { ...base, ...plan.baseAxes };
   for (const block of plan.blocks) {
-    if (round >= block.fromRound && round <= block.toRound) Object.assign(axes, block.axisAdjustments);
+    if (round < block.fromRound || round > block.toRound) continue;
+    for (const [axis, delta] of Object.entries(block.axisAdjustments) as [keyof StyleAxes, number][]) {
+      axes[axis] = Math.max(1, Math.min(20, axes[axis] + delta));
+    }
   }
   return axes;
 }

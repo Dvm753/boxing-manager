@@ -13,7 +13,7 @@ import {
 import {
   TECHNICAL_ATTRIBUTES, PHYSICAL_ATTRIBUTES, MENTAL_ATTRIBUTES,
 } from '../packages/core-model/src/attributes.js';
-import { STYLE_AXES, styleLabel } from '../packages/core-model/src/style.js';
+import { STYLE_AXES, styleLabel, type StyleAxes, type StyleAxis } from '../packages/core-model/src/style.js';
 import { ATTACK_SIGNATURES, attackSignatures } from '../packages/core-model/src/signature.js';
 import { createRng, deriveSeed } from '../packages/core-model/src/rng.js';
 import {
@@ -41,6 +41,19 @@ const SCHEDULED_ROUNDS = 12;
 
 interface StrategyChoice { plan: StrategyPlanId; scenario: StrategyScenarioId }
 
+/**
+ * План на бій з плану й сценарію (ADR-0028). `strategyBaseAxes` дає **зсуви**, а
+ * `FightPlan.baseAxes` за ADR-0014 — вже результуючі осі бійця; тому зсув
+ * накладається на власні осі й утримується в 1–20 — так само, як `planFor` у світі.
+ */
+function strategyPlan(axes: StyleAxes, choice: StrategyChoice): { baseAxes: Partial<StyleAxes>; blocks: [] } {
+  const baseAxes: Partial<StyleAxes> = {};
+  for (const [axis, delta] of Object.entries(strategyBaseAxes(choice.plan, choice.scenario)) as [StyleAxis, number][]) {
+    baseAxes[axis] = Math.max(1, Math.min(20, axes[axis] + delta));
+  }
+  return { baseAxes, blocks: [] };
+}
+
 /** Межа поради кута (ADR-0028) — магнітуда осей, яку дозволяє сам обраний сценарій. */
 function scenarioBounds(scenario: StrategyScenarioId): { maxDelta: Record<string, number> } {
   const maxDelta: Record<string, number> = {};
@@ -63,14 +76,14 @@ function runFight(
   strategyA: StrategyChoice, strategyB: StrategyChoice, advisorOn: boolean,
 ): unknown {
   const rng = createRng(deriveSeed(seed, `demo/fight/${take}`));
-  const context = {
-    scheduledRounds: SCHEDULED_ROUNDS, judges: makeJudges(rng),
-    planA: { baseAxes: strategyBaseAxes(strategyA.plan, strategyA.scenario), blocks: [] },
-    planB: { baseAxes: strategyBaseAxes(strategyB.plan, strategyB.scenario), blocks: [] },
-    threeKnockdownRule: false,
-  };
   const snapA = toSnapshot(a as never);
   const snapB = toSnapshot(b as never);
+  const context = {
+    scheduledRounds: SCHEDULED_ROUNDS, judges: makeJudges(rng),
+    planA: strategyPlan(snapA.styleAxes, strategyA),
+    planB: strategyPlan(snapB.styleAxes, strategyB),
+    threeKnockdownRule: false,
+  };
 
   if (!advisorOn) {
     return { ...simulateFight(snapA, snapB, context as never, rng), advice: [] };

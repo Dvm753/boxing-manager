@@ -101,6 +101,17 @@ describe('покроковий рушій бою (ADR-0028)', () => {
     expect(JSON.stringify(withAdvice)).not.toBe(JSON.stringify(withoutAdvice));
   });
 
+  it('axisAdjustments — зсув, а не абсолютне значення (ADR-0014): нульовий зсув нічого не змінює', () => {
+    // Раніше блок перекривав вісь значенням як є: `{ punchVolume: 0 }` робив об'єм нулем
+    // (поза шкалою 1–20) і змінював бій. За контрактом ADR-0014 це зсув — нуль є нулем.
+    const zeroShift = {
+      ...ctx(), planA: { blocks: [{ fromRound: 1, toRound: 12, axisAdjustments: { punchVolume: 0, risk: 0 } }] },
+    };
+    const plain = simulateFight(a, b, ctx(), createRng(4242));
+    const shifted = simulateFight(a, b, zeroShift, createRng(4242));
+    expect(JSON.stringify(shifted)).toBe(JSON.stringify(plain));
+  });
+
   it('детермінізм: той самий seed і та сама послідовність порад дають той самий бій', () => {
     const run = (seed: number) => {
       const steps = simulateFightSteps(a, b, ctx(), createRng(seed));
