@@ -49,4 +49,19 @@ export const TUNING = {
   foulHeadbuttCutChance: 0.10,
   /** Раунд із відібраними балами не опускається нижче цього — навіть найгірший фол не топить картку. */
   foulMinRoundScore: 5,
+
+  /**
+   * Коронні прийоми атаки (Q34): невеликий зсув вибору удару й невеликий бонус
+   * якості, коли кинутий удар збігається з активним прийомом бійця. Прийоми самі —
+   * похідна від атрибутів (`@bm/core-model` `attackSignatures`), рушій лише читає.
+   */
+  signatureBonus: {
+    jab: 0.015,
+    uppercut: 0.03,
+    cross: 0.02,
+    body: 0.02,
+    combinationExtra: 0.01,
+  },
+  /** Бонус до offence у resolveQuality, коли влучання — саме коронним ударом. */
+  signatureQualityBonus: 0.004,
 } as const;

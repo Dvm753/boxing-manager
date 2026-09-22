@@ -14,6 +14,7 @@ import {
   TECHNICAL_ATTRIBUTES, PHYSICAL_ATTRIBUTES, MENTAL_ATTRIBUTES,
 } from '../packages/core-model/src/attributes.js';
 import { STYLE_AXES, styleLabel } from '../packages/core-model/src/style.js';
+import { ATTACK_SIGNATURES, attackSignatures } from '../packages/core-model/src/signature.js';
 import { createRng, deriveSeed } from '../packages/core-model/src/rng.js';
 import {
   simulateFight, simulateFightSteps, buildCommentary, buildRoundStats, totalStats, accuracy,
@@ -232,6 +233,7 @@ function importCareer(text: string): { ok: true; summary: unknown; season: unkno
 
 window.BM = {
   generateWorld, WEIGHT_CLASSES, SANCTIONING_BODIES, CURRENCIES, STYLE_AXES, styleLabel,
+  ATTACK_SIGNATURES, attackSignatures,
   CAMP_PHASES, CAMP_LOADS, CAMP_FOCUSES_BY_PHASE, FIGHT_PLANS,
   STRATEGY_PLANS, STRATEGY_SCENARIOS, STRATEGY_PLAN_SUITABILITY, coachAdvice,
   runFight, simulateSeason, exportCareer, importCareer, formatIso,

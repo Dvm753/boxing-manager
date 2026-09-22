@@ -1,4 +1,4 @@
-import { normalize, type Rng, type StyleAxes } from '@bm/core-model';
+import { attackSignatures, normalize, type AttackSignature, type Rng, type StyleAxes } from '@bm/core-model';
 import { scoreRound, resolveDecision, type RoundPerception } from './judging.js';
 import { TUNING } from './tuning.js';
 import type {
@@ -29,6 +29,8 @@ interface FighterState {
   cuts: number;
   /** Скільки разів цей боєць скоїв фол кожного типу за бій (ADR-0027). */
   fouls: Record<FoulKind, number>;
+  /** Коронні прийоми атаки (Q34) — похідна від атрибутів, рахується раз на бій. */
+  signatures: readonly AttackSignature[];
   stats: FightStats;
 }
 
@@ -45,16 +47,24 @@ const a01 = (v: number): number => normalize(v);
 
 function chooseAction(f: FighterState, position: Position, rng: Rng): PunchType {
   const { punchVolume, bodyAttack, risk, preferredRange } = f.axes;
-  const wantBody = a01(bodyAttack) * 0.55;
+  const sig = f.signatures;
+  const wantBody = a01(bodyAttack) * 0.55 + (sig.includes('bodySpecialist') ? TUNING.signatureBonus.body : 0);
   const wantPower = a01(risk) * 0.5 + a01(preferredRange) * 0.2;
   const roll = rng.next();
 
   if (roll < wantBody * 0.45) return 'bodyShot';
   if (position === 'inside' || position === 'clinch') {
-    return rng.next() < 0.55 ? 'uppercut' : 'hook';
+    const upRatio = 0.55 + (sig.includes('uppercutInside') ? TUNING.signatureBonus.uppercut : 0);
+    return rng.next() < upRatio ? 'uppercut' : 'hook';
   }
-  if (roll < 0.30 + (1 - a01(punchVolume)) * 0.18 - wantPower * 0.2) return 'jab';
-  return rng.next() < 0.5 ? 'cross' : 'hook';
+  // Коронні прийоми атаки (Q34): невеликий зсув вибору удару в бік прийому,
+  // яким боєць природно володіє краще за середнє у власному профілі.
+  const jabBonus = (sig.includes('jabSpecialist') || sig.includes('onetwoSpecialist')) ? TUNING.signatureBonus.jab : 0;
+  if (roll < 0.30 + (1 - a01(punchVolume)) * 0.18 - wantPower * 0.2 + jabBonus) return 'jab';
+  const crossRatio = 0.5
+    + (sig.includes('onetwoSpecialist') ? TUNING.signatureBonus.cross : 0)
+    - (sig.includes('hookSpecialist') ? TUNING.signatureBonus.cross : 0);
+  return rng.next() < crossRatio ? 'cross' : 'hook';
 }
 
 function resolveQuality(
@@ -63,11 +73,21 @@ function resolveQuality(
   const atk = attacker.snap.attributes;
   const def = defender.snap.attributes;
 
+  // Коронний прийом (Q34): невеликий бонус якості, коли влучання — саме тим
+  // ударом, яким боєць природно володіє краще за середнє у власному профілі.
+  const isSignaturePunch =
+    (punch === 'jab' && attacker.signatures.includes('jabSpecialist')) ||
+    (punch === 'hook' && attacker.signatures.includes('hookSpecialist')) ||
+    (punch === 'uppercut' && attacker.signatures.includes('uppercutInside')) ||
+    (punch === 'bodyShot' && attacker.signatures.includes('bodySpecialist')) ||
+    (punch === 'cross' && attacker.signatures.includes('onetwoSpecialist'));
+
   const offence =
     a01(atk[punch === 'bodyShot' ? 'bodyPunching' : punch]) * 0.45 +
     a01(atk.accuracy) * 0.28 +
     a01(atk.timing) * 0.17 +
-    a01(atk.handSpeed) * 0.10;
+    a01(atk.handSpeed) * 0.10 +
+    (isSignaturePunch ? TUNING.signatureQualityBonus : 0);
 
   const defence =
     a01(def.headMovement) * 0.28 +
@@ -152,7 +172,8 @@ export function* simulateFightSteps(
     headDamage: 0, bodyDamage: 0,
     stamina: 55 + snap.freshness * 0.45,
     knockdownsThisRound: 0, knockdownsTotal: 0, stunned: 0, cuts: 0,
-    fouls: { 'low-blow': 0, holding: 0, headbutt: 0 }, stats: emptyStats(),
+    fouls: { 'low-blow': 0, holding: 0, headbutt: 0 },
+    signatures: attackSignatures(snap.attributes), stats: emptyStats(),
   });
   const fa = mk(a, 'a');
   const fb = mk(b, 'b');
@@ -220,8 +241,11 @@ export function* simulateFightSteps(
       }
 
       const vol = a01(attacker.axes.punchVolume);
+      // Комбінаційний боєць (Q34): трохи частіше додає ще один удар в обмін.
+      const combinationExtra = attacker.signatures.includes('combinationPuncher')
+        && rng.next() < TUNING.signatureBonus.combinationExtra ? 1 : 0;
       const punches = isFoul ? 0
-        : 1 + (rng.next() < 0.25 + vol * 0.55 ? 1 : 0) + (rng.next() < vol * 0.22 ? 1 : 0);
+        : 1 + (rng.next() < 0.25 + vol * 0.55 ? 1 : 0) + (rng.next() < vol * 0.22 ? 1 : 0) + combinationExtra;
       for (let p = 0; p < punches && !finish; p++) {
         const punch = chooseAction(attacker, position, rng);
         const quality = resolveQuality(attacker, defender, punch, position, rng);

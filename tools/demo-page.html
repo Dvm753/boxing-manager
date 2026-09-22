@@ -437,6 +437,17 @@
           '<span class="v">'+v+'</span></div>';
       }).join('')+'</div>';
   }
+  // Коронні прийоми атаки (Q34) — похідна від атрибутів, показується як бейджі;
+  // 0/1/кілька на бійця, "не виражено" — теж чесна відповідь, а не порожнеча.
+  function signaturesBlock(f){
+    var sigs = BM.attackSignatures(f.attributes);
+    var badges = sigs.length===0
+      ? '<span class="meta">'+t('ui.noSignature')+'</span>'
+      : sigs.map(function(s){
+          return '<span class="rtab" style="cursor:default" aria-current="true">'+esc(t('signature.'+s))+'</span>';
+        }).join(' ');
+    return '<div class="attrgrp"><h3>'+t('ui.signatures')+'</h3><div class="row" style="flex-wrap:wrap;gap:6px">'+badges+'</div></div>';
+  }
 
   function renderCard(){
     var el=document.getElementById('card');
@@ -459,6 +470,7 @@
           (myIds.indexOf(f.id)>=0 || myIds.length>=MAX_STABLE ? ' disabled' : '')+'>'+
           t('ui.takeUnderCare')+'</button></div>'+
       axesBlock(f)+
+      signaturesBlock(f)+
       attrBlock(t('attrGroup.technical'), BM.groups.technical, f)+
       attrBlock(t('attrGroup.physical'), BM.groups.physical, f)+
       attrBlock(t('attrGroup.mental'), BM.groups.mental, f)+
@@ -588,7 +600,8 @@
     var pager =
       '<button class="act" id="prevRoundBtn"'+(fightRound===null || fightRound<=1?' disabled':'')+'>◀ '+t('ui.prevRound')+'</button>'+
       '<button class="act" id="nextRoundBtn"'+(reachedEnd?' disabled':'')+'>'+
-        (revealed+1>=rounds.length ? t('ui.showResult') : t('ui.nextRound'))+' ▶</button>';
+        (revealed+1>=rounds.length ? t('ui.showResult') : t('ui.nextRound'))+' ▶</button>'+
+      '<button class="act" id="wholeFightBtn"'+(fightRound===null?' disabled':'')+'>'+t('ui.wholeFight')+'</button>';
 
     // Час у мм:сс (закриває Q30) — лише там, де подія прив'язана до миті раунду.
     function mmss(sec){
@@ -671,6 +684,9 @@
       var r = fightRound===null ? revealed : fightRound;
       if(r<rounds.length) fightRound = r+1;
       renderFight();
+    });
+    document.getElementById('wholeFightBtn').addEventListener('click', function(){
+      fightRound = null; renderFight();
     });
     el.querySelectorAll('[data-strategy-side]').forEach(function(sel){
       sel.addEventListener('change', function(){
