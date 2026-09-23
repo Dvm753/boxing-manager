@@ -10,9 +10,21 @@ import { publishRankings } from './rankings.js';
 import { checkMandatoryDefenses } from './titles.js';
 import { civilFromDays } from './calendar.js';
 import { SANCTIONING_BODIES } from '@bm/data';
+import type { FightEvent } from '@bm/engine-fight';
 import type { PlayerCommand, World, WorldEvent } from './types.js';
 
 const GROUP_OF: Record<string, string> = Object.fromEntries(WEIGHT_CLASSES.map((w) => [w.id, w.group]));
+
+/**
+ * Результат дня. `titleFightLogs` — лог кожного титульного бою цього дня за `fight.id`;
+ * **не частина стану світу** і в сейв не йде (зберігати логи чи ні — Q25). Додаткове
+ * поле: наявні виклики, що читають лише `world` і `events`, не змінюються.
+ */
+export interface DayResult {
+  world: World;
+  events: WorldEvent[];
+  titleFightLogs: Record<string, readonly FightEvent[]>;
+}
 
 /**
  * Тік дня (ADR-0016). Не змінює стан напряму — **породжує події**, які застосовують обробники.
@@ -28,7 +40,7 @@ export function advanceDay(
    * знадобиться для подій рівня світу (травми на тренуванні, рішення ШІ).
    */
   _rng: Rng,
-): { world: World; events: WorldEvent[] } {
+): DayResult {
   // Команди застосовуються до тіку: вони описують намір на майбутнє. Бій за участю
   // підопічного тут не потрапляє в календар — він стає пропозицією (ADR-0023).
   const applied = applyCommands(world, commands, world.day);
@@ -65,6 +77,7 @@ export function advanceDay(
 
   const tierIndex = buildTierIndex(current);
   const initial: WorldEvent[] = [];
+  const titleFightLogs: Record<string, readonly FightEvent[]> = {};
 
   // Порядок боїв фіксується сортуванням за id: порядок у масиві не є частиною стану.
   for (const fight of [...due].sort((x, y) => (x.id < y.id ? -1 : 1))) {
@@ -72,7 +85,9 @@ export function advanceDay(
     const b = current.fighters[fight.bId];
     if (!a || !b) continue;
 
-    const tier = fightTier(tierIndex, fight.aId, fight.bId);
+    // Титульний бій — завжди повна симуляція: це бій, який світ і гравець мають
+    // побачити й розповісти, а не лише отримати результат наближення (ADR-0015, ADR-0026).
+    const tier = fight.titleKey !== undefined ? 1 : fightTier(tierIndex, fight.aId, fight.bId);
     const group = GROUP_OF[a.constants.naturalWeightClassId] ?? 'middle';
     // Власний потік випадковості на бій: додавання боїв не зсуває решту світу.
     const fightRng = createRng(deriveSeed(current.seed, `fight/${fight.id}`));
@@ -81,6 +96,7 @@ export function advanceDay(
     const plans = camp?.plan === undefined ? {} : camp.fighterId === fight.aId
       ? { a: camp.plan } : { b: camp.plan };
     const resolved = resolveFight(tier, a, b, fight.scheduledRounds, fightRng, group, plans);
+    if (fight.titleKey !== undefined && resolved.eventLog) titleFightLogs[fight.id] = resolved.eventLog;
 
     initial.push({
       t: 'FightCompleted',
@@ -109,5 +125,5 @@ export function advanceDay(
   }
 
   const after = dispatch(current, initial, HANDLERS);
-  return { world: after.world, events: [...before.events, ...after.events] };
+  return { world: after.world, events: [...before.events, ...after.events], titleFightLogs };
 }

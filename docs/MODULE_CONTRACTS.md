@@ -25,7 +25,8 @@ simulateFight(
 ): { result: FightResult; eventLog: FightEvent[] }
 
 // engine-world
-advanceDay(world: World, commands: PlayerCommand[], rng: Rng): { world: World; events: WorldEvent[] }
+advanceDay(world: World, commands: PlayerCommand[], rng: Rng): { world: World; events: WorldEvent[]; titleFightLogs: Record<fightId, FightEvent[]> }
+// titleFightLogs — додано 2026-09-23 (доповнення ADR-0026): лог титульних боїв дня; не стан світу, у сейв не йде
 
 // переговори — однакові для гравця і ШІ
 proposeFight(offer: FightOffer): NegotiationState

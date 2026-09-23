@@ -1,5 +1,5 @@
 import { createRng, deriveSeed, type Rng } from '@bm/core-model';
-import { advanceDay, rankingKey, type PlayerCommand, type World, type WorldEvent } from '@bm/engine-world';
+import { advanceDay, rankingKey, type DayResult, type PlayerCommand, type World } from '@bm/engine-world';
 import { createWorld, decide, type PlayerPolicy } from '@bm/session';
 import {
   makeCandidate, proposeCard, proposeTitleFights,
@@ -89,7 +89,7 @@ export function runSeason(
  */
 export function simulateDay(
   current: World, clock: SeasonClock, playerCommands: readonly PlayerCommand[],
-): { world: World; events: WorldEvent[] } {
+): DayResult {
   const { cardSize, startedOn, rng } = clock;
   const commands: PlayerCommand[] = [...playerCommands];
 

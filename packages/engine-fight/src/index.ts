@@ -5,3 +5,4 @@ export * from './engine.js';
 export * from './commentary.js';
 export * from './round-stats.js';
 export * from './corner-advice.js';
+export * from './fight-summary.js';

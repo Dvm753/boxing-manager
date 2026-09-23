@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ALL_ATTRIBUTES, STYLE_AXES } from '@bm/core-model';
 import {
   STRATEGY_PLANS, STRATEGY_SCENARIOS, STRATEGY_PLAN_AXES, STRATEGY_PLAN_SUITABILITY,
-  STRATEGY_SCENARIO_AXES, strategyBaseAxes, isStrategyPlanId, isStrategyScenarioId,
+  STRATEGY_SCENARIO_AXES, STRATEGY_SCENARIO_ADVICE_BOUNDS, strategyBaseAxes, isStrategyPlanId, isStrategyScenarioId,
 } from '../src/strategy-plans.js';
 
 /**
@@ -59,5 +59,24 @@ describe('стратегічні плани й сценарії (ADR-0028)', () 
     expect(isStrategyPlanId('bodywork')).toBe(false);
     expect(isStrategyScenarioId('B')).toBe(true);
     expect(isStrategyScenarioId('D')).toBe(false);
+  });
+});
+
+describe('межі порад кута за сценарієм (ADR-0028 §6, Q35)', () => {
+  it('A і C — модуль власних зсувів сценарію', () => {
+    expect(STRATEGY_SCENARIO_ADVICE_BOUNDS.A).toEqual({ risk: 2, punchVolume: 1 });
+    expect(STRATEGY_SCENARIO_ADVICE_BOUNDS.C).toEqual({ risk: 2, punchVolume: 2, bodyAttack: 1 });
+  });
+
+  it('B сам осей не зсуває, але має малий простір для порад', () => {
+    expect(STRATEGY_SCENARIO_AXES.B).toEqual({});
+    expect(STRATEGY_SCENARIO_ADVICE_BOUNDS.B).toEqual({ risk: 1, punchVolume: 1 });
+  });
+
+  it('простір B — найменший із трьох', () => {
+    const size = (b: Record<string, number | undefined>): number =>
+      Object.values(b).reduce<number>((s, v) => s + (v ?? 0), 0);
+    expect(size(STRATEGY_SCENARIO_ADVICE_BOUNDS.B)).toBeLessThan(size(STRATEGY_SCENARIO_ADVICE_BOUNDS.A));
+    expect(size(STRATEGY_SCENARIO_ADVICE_BOUNDS.B)).toBeLessThan(size(STRATEGY_SCENARIO_ADVICE_BOUNDS.C));
   });
 });

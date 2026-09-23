@@ -8,6 +8,7 @@ import {
 import { FIGHT_PLANS } from '../packages/data/src/fight-plans.js';
 import {
   STRATEGY_PLANS, STRATEGY_SCENARIOS, STRATEGY_PLAN_SUITABILITY, STRATEGY_SCENARIO_AXES,
+  STRATEGY_SCENARIO_ADVICE_BOUNDS,
   strategyBaseAxes, type StrategyPlanId, type StrategyScenarioId,
 } from '../packages/data/src/strategy-plans.js';
 import {
@@ -20,7 +21,7 @@ import {
 import { createRng, deriveSeed } from '../packages/core-model/src/rng.js';
 import {
   simulateFight, simulateFightSteps, buildCommentary, buildRoundStats, totalStats, accuracy,
-  proposeCornerAdvice, type FightStepUpdate,
+  proposeCornerAdvice, buildFightSummary, type FightStepUpdate, type FightEvent,
 } from '../packages/engine-fight/src/index.js';
 import { coachSuitability } from '../packages/ai/src/index.js';
 import { toSnapshot, makeJudges } from '../packages/sim-cli/src/calibrate.js';
@@ -31,7 +32,8 @@ import {
   saveCareer, loadCareer, describeSave, startCareer, playerStable,
 } from '../packages/session/src/index.js';
 import {
-  buildTierIndex, formatIso, rankingKey, nextFightIndex, type PlayerCommand, type World,
+  buildTierIndex, formatIso, rankingKey, nextFightIndex, parseTitleKey,
+  type PlayerCommand, type ScheduledFight, type World, type WorldEvent,
 } from '../packages/engine-world/src/index.js';
 import {
   createTranslator, LOCALES, LOCALE_NAMES, UNIT_SYSTEMS, THEMES,
@@ -62,9 +64,7 @@ function strategyPlan(axes: StyleAxes, choice: StrategyChoice): { baseAxes: Part
 
 /** Межа поради кута (ADR-0028) — магнітуда осей, яку дозволяє сам обраний сценарій. */
 function scenarioBounds(scenario: StrategyScenarioId): { maxDelta: Record<string, number> } {
-  const maxDelta: Record<string, number> = {};
-  for (const [axis, delta] of Object.entries(STRATEGY_SCENARIO_AXES[scenario])) maxDelta[axis] = Math.abs(delta);
-  return { maxDelta };
+  return { maxDelta: { ...STRATEGY_SCENARIO_ADVICE_BOUNDS[scenario] } as Record<string, number> };
 }
 
 /**
@@ -263,6 +263,28 @@ let liveDecisions = 0;
 /** Відповіді гравця застосовуються на початку наступного дня — так само, як авто-політика. */
 let queued: DecisionCommand[] = [];
 const answered = new Set<string>();
+/**
+ * День титульних боїв, уже оголошений гравцеві. «Далі» зупиняється **перед** таким днем
+ * (анонс), а наступне «Далі» проводить саме його й показує резюме — гра не проскакує пояси.
+ */
+let announcedDay: number | null = null;
+
+/**
+ * Зліпки атрибутів раз на 4 тижні — для показу прогресу/регресу за останній період.
+ * Посилання, не копії: світ незмінний, тож зліпок коштує лише масив посилань.
+ * Поки розвиток бійця не змодельовано (атрибути в світі не змінюються), дельти нульові.
+ */
+interface AttributeSnapshot { day: number; attributes: Record<string, Record<string, number>> }
+let snapshots: AttributeSnapshot[] = [];
+const SNAPSHOT_EVERY_DAYS = 28;
+const DELTA_WINDOW_DAYS = 84;
+
+function takeSnapshot(world: World): void {
+  const attributes: Record<string, Record<string, number>> = {};
+  for (const f of Object.values(world.fighters)) attributes[f.id] = f.attributes as unknown as Record<string, number>;
+  snapshots.push({ day: world.day, attributes });
+  if (snapshots.length > 14) snapshots = snapshots.slice(-14);
+}
 
 function resetLive(world: World): void {
   lastWorld = world;
@@ -272,6 +294,9 @@ function resetLive(world: World): void {
   liveDecisions = 0;
   queued = [];
   answered.clear();
+  announcedDay = null;
+  snapshots = [];
+  takeSnapshot(world);
 }
 
 function namesOf(world: World): Record<string, string> {
@@ -319,12 +344,28 @@ function newWorld(seed: number, fighters: number): unknown {
  * Бійці живого світу з історією боїв — таблиця й картка показують **поточний** стан:
  * рекорд, форму, знос і останні бої оновлюються після кожного бою.
  */
+function attributeDelta(
+  now: Record<string, number>, then: Record<string, number> | undefined,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!then) return out;
+  for (const [key, value] of Object.entries(now)) {
+    const d = value - (then[key] ?? value);
+    if (d !== 0) out[key] = d;
+  }
+  return out;
+}
+
 function worldFighters(): unknown[] {
   const world = lastWorld;
   if (!world) return [];
   const names = namesOf(world);
+  // Зліпок-орієнтир: найстаріший у межах вікна (≈12 тижнів), щоб дельта мала сенс періоду.
+  const reference = snapshots.find((x) => world.day - x.day <= DELTA_WINDOW_DAYS && x.day < world.day) ?? null;
   return Object.values(world.fighters).map((f) => ({
     ...f,
+    attributeDelta: attributeDelta(f.attributes as unknown as Record<string, number>, reference?.attributes[f.id]),
+    attributeDeltaWeeks: reference === null ? 0 : Math.round((world.day - reference.day) / 7),
     unavailableUntil: world.unavailableUntil[f.id] ?? null,
     history: (world.history[f.id] ?? []).slice(-6).reverse().map((h) => ({
       ...h, opponentName: names[h.opponentId] ?? '—', date: formatIso(h.day),
@@ -345,6 +386,73 @@ function answerDecision(command: DecisionCommand): unknown {
   return liveSummary();
 }
 
+const titleFightsOn = (world: World, day: number): ScheduledFight[] =>
+  world.schedule.filter((f) => f.day === day && f.titleKey !== undefined)
+    .sort((x, y) => (x.id < y.id ? -1 : 1));
+
+/** Боєць у картці титульного бою — стан **до** бою (рекорд, позиція, прийоми). */
+function titleCorner(world: World, fighterId: string, titleKey: string): unknown {
+  const f = world.fighters[fighterId];
+  if (!f) return null;
+  const row = (world.rankings[titleKey] ?? []).find((r) => r.fighterId === fighterId);
+  return {
+    id: f.id, name: f.name, countryCode: f.countryCode, age: f.age, record: f.record,
+    stance: f.constants.stance, heightCm: f.constants.heightCm, reachCm: f.constants.reachCm,
+    style: styleLabel(f.styleAxes),
+    champion: world.titles[titleKey]?.championId === fighterId,
+    position: row?.position ?? null,
+    attack: attackSignatures(f.attributes), defense: defenseSignatures(f.attributes),
+    sharpness: f.condition.sharpness, freshness: f.condition.freshness,
+  };
+}
+
+function titleCard(world: World, fight: ScheduledFight): unknown {
+  const titleKey = fight.titleKey as string;
+  const { bodyId, weightClassId } = parseTitleKey(titleKey);
+  const title = world.titles[titleKey];
+  return {
+    fightId: fight.id, date: formatIso(fight.day), bodyId, weightClassId,
+    rounds: fight.scheduledRounds,
+    vacant: !title?.championId, defences: title?.defences ?? 0,
+    a: titleCorner(world, fight.aId, titleKey), b: titleCorner(world, fight.bId, titleKey),
+  };
+}
+
+/**
+ * Резюме титульного бою: з логу (`buildFightSummary`) і з подій дня — травми після бою,
+ * пояс завойовано чи захищено. Картка бійців — зі світу **до** бою, щоб рекорд був той,
+ * з яким вони виходили в ринг.
+ */
+function titleResult(
+  before: World, events: readonly WorldEvent[], fight: ScheduledFight, log: readonly FightEvent[] | undefined,
+): unknown {
+  const card = titleCard(before, fight);
+  const done = events.find((e) => e.t === 'FightCompleted' && e.fightId === fight.id);
+  if (!done || !log) return { card, cancelled: true };
+  const injuryOf = (id: string): number | null => {
+    const e = events.find((x) => x.t === 'FighterInjured' && x.fighterId === id);
+    return e && e.t === 'FighterInjured' ? e.daysOut : null;
+  };
+  const won = events.find((e) => e.t === 'TitleWon' && e.titleKey === fight.titleKey);
+  const defended = events.find((e) => e.t === 'TitleDefended' && e.titleKey === fight.titleKey);
+  const summary = buildFightSummary(log);
+  // Підсумкові картки суддів — сума карток раундів кожного судді, як їх оголошують у рингу.
+  const scorecards: [number, number][] = [];
+  for (const round of buildRoundStats(log)) {
+    (round.cards ?? []).forEach(([a, b], i) => {
+      const acc = scorecards[i] ?? [0, 0];
+      scorecards[i] = [acc[0] + a, acc[1] + b];
+    });
+  }
+  return {
+    card, cancelled: false, summary, scorecards,
+    accuracy: { a: accuracy(summary.totals.a), b: accuracy(summary.totals.b) },
+    injuries: { a: injuryOf(fight.aId), b: injuryOf(fight.bId) },
+    outcome: won ? (won.t === 'TitleWon' && won.vacant ? 'vacantWon' : 'newChampion')
+      : defended ? 'defended' : 'noChange',
+  };
+}
+
 /**
  * «Далі»: до семи днів світу. Зупиняється раніше, щойно в підопічного з'являється нове
  * рішення — інакше дводенний дедлайн фази табору минав би всередині тижня без гравця.
@@ -355,13 +463,28 @@ function advanceWeek(): unknown {
   const names = namesOf(lastWorld);
   const playerFights: unknown[] = [];
   let daysAdvanced = 0;
+  let titleAnnouncement: unknown[] = [];
+  let titleResults: unknown[] = [];
 
   for (let d = 0; d < 7; d++) {
+    // День поясів: спершу зупинка з анонсом, і лише наступне «Далі» проводить бої.
+    const tomorrow = lastWorld.day + 1;
+    const titleToday = titleFightsOn(lastWorld, tomorrow);
+    if (titleToday.length > 0 && announcedDay !== tomorrow) {
+      announcedDay = tomorrow;
+      titleAnnouncement = titleToday.map((f) => titleCard(lastWorld as World, f));
+      break;
+    }
+    const before = lastWorld;
     const commands = queued;
     queued = [];
-    const { world, events } = simulateDay(lastWorld, clock, commands);
+    const { world, events, titleFightLogs } = simulateDay(lastWorld, clock, commands);
     lastWorld = world;
     daysAdvanced++;
+    if (titleToday.length > 0) {
+      titleResults = titleToday.map((f) => titleResult(before, events, f, titleFightLogs[f.id]));
+      announcedDay = null;
+    }
     for (const event of events) {
       if (event.t !== 'FightCompleted') continue;
       liveFights++;
@@ -376,19 +499,24 @@ function advanceWeek(): unknown {
       });
     }
     const fresh = world.decisions.some((x) => !seen.has(x.id) && world.playerFighterIds.includes(x.fighterId));
-    if (fresh) break;
+    // Після дня поясів — теж пауза: резюме боїв треба прочитати, а не прогорнути.
+    if (fresh || titleResults.length > 0) break;
   }
+
+  const lastSnap = snapshots.at(-1);
+  if (!lastSnap || lastWorld.day - lastSnap.day >= SNAPSHOT_EVERY_DAYS) takeSnapshot(lastWorld);
 
   const open = new Set(lastWorld.decisions.map((d) => d.id));
   for (const id of [...answered]) if (!open.has(id)) answered.delete(id);
-  return { ...(liveSummary() as object), daysAdvanced, playerFights };
+  return { ...(liveSummary() as object), daysAdvanced, playerFights, titleAnnouncement, titleResults };
 }
 
 window.BM = {
   generateWorld, WEIGHT_CLASSES, SANCTIONING_BODIES, CURRENCIES, STYLE_AXES, styleLabel,
   ATTACK_SIGNATURES, attackSignatures, DEFENSE_SIGNATURES, defenseSignatures,
   CAMP_PHASES, CAMP_LOADS, CAMP_FOCUSES_BY_PHASE, FIGHT_PLANS,
-  STRATEGY_PLANS, STRATEGY_SCENARIOS, STRATEGY_PLAN_SUITABILITY, STRATEGY_SCENARIO_AXES, coachAdvice,
+  STRATEGY_PLANS, STRATEGY_SCENARIOS, STRATEGY_PLAN_SUITABILITY, STRATEGY_SCENARIO_AXES,
+  STRATEGY_SCENARIO_ADVICE_BOUNDS, coachAdvice,
   runFight, simulateSeason, exportCareer, importCareer, formatIso,
   newWorld, worldFighters, takeUnderCare, answerDecision, advanceWeek, liveSummary,
   buildCommentary, buildRoundStats, totalStats, accuracy, renderLine,

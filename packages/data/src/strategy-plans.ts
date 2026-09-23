@@ -16,7 +16,11 @@ export type StrategyScenarioId = (typeof STRATEGY_SCENARIOS)[number];
 export type VisibleAttribute = TechnicalAttribute | PhysicalAttribute | MentalAttribute;
 
 interface RawPlan { axes: Partial<Record<StyleAxis, number>>; suitability: readonly VisibleAttribute[] }
-interface RawScenario { axes: Partial<Record<StyleAxis, number>> }
+interface RawScenario {
+  axes: Partial<Record<StyleAxis, number>>;
+  /** Явна межа порад кута; без неї межа — модуль власних зсувів сценарію (ADR-0028). */
+  adviceMaxDelta?: Partial<Record<StyleAxis, number>>;
+}
 interface RawFile { plans: Record<StrategyPlanId, RawPlan>; scenarios: Record<StrategyScenarioId, RawScenario> }
 
 const { plans, scenarios } = raw as unknown as RawFile;
@@ -30,6 +34,20 @@ export const STRATEGY_PLAN_SUITABILITY: Record<StrategyPlanId, readonly VisibleA
 
 export const STRATEGY_SCENARIO_AXES: Record<StrategyScenarioId, Partial<Record<StyleAxis, number>>> =
   Object.fromEntries(STRATEGY_SCENARIOS.map((id) => [id, scenarios[id].axes])) as never;
+
+/**
+ * Межа порад кута на сценарій (ADR-0028 §6): наскільки порада може зсунути вісь у будь-який
+ * бік. За замовчуванням — модуль зсувів самого сценарію; сценарій може задати її явно
+ * (`adviceMaxDelta`) — так B, що сам осей не зсуває, отримує малий простір ±1 (Q35).
+ */
+export const STRATEGY_SCENARIO_ADVICE_BOUNDS: Record<StrategyScenarioId, Partial<Record<StyleAxis, number>>> =
+  Object.fromEntries(STRATEGY_SCENARIOS.map((id) => {
+    const explicit = scenarios[id].adviceMaxDelta;
+    if (explicit) return [id, { ...explicit }];
+    const bounds: Partial<Record<StyleAxis, number>> = {};
+    for (const [axis, delta] of Object.entries(scenarios[id].axes)) bounds[axis as StyleAxis] = Math.abs(delta as number);
+    return [id, bounds];
+  })) as never;
 
 export const isStrategyPlanId = (value: string): value is StrategyPlanId =>
   (STRATEGY_PLANS as readonly string[]).includes(value);

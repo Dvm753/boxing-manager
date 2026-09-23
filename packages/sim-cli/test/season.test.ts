@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildWorld, runSeason, simulateDay, startSeasonClock } from '../src/season.js';
 import { formatIso } from '@bm/engine-world';
 import { decide, startCareer } from '@bm/session';
+import { buildFightSummary } from '@bm/engine-fight';
 
 describe('прогін сезону', () => {
   it('детермінований: той самий seed дає той самий світ', () => {
@@ -108,5 +109,34 @@ describe('світ день за днем (тиждень гравця в под
     for (const decision of current.decisions) {
       expect(decision.deadline).toBeGreaterThanOrEqual(current.day);
     }
+  });
+});
+
+describe('титульні бої дня (доповнення ADR-0026)', () => {
+  it('титульний бій — завжди рівень 1, його лог віддається, а резюме збігається з результатом світу', () => {
+    const start = buildWorld(2026, 600);
+    const clock = startSeasonClock(start);
+    let current = start;
+    let checked = 0;
+    for (let d = 0; d < 200 && checked < 5; d++) {
+      const step = simulateDay(current, clock, []);
+      for (const e of step.events) {
+        if (e.t !== 'FightCompleted' || e.titleKey === undefined) continue;
+        expect(e.tier).toBe(1);
+        const log = step.titleFightLogs[e.fightId];
+        expect(log).toBeDefined();
+        const summary = buildFightSummary(log ?? []);
+        const winnerId = summary.winner === null ? null : summary.winner === 'a' ? e.aId : e.bId;
+        expect(winnerId).toBe(e.winnerId);
+        expect(summary.method).toBe(e.method);
+        expect(summary.endingRound).toBe(e.endingRound);
+        checked++;
+      }
+      // Лог — лише для титульних боїв: звичайні бої не повинні роздувати результат дня.
+      const titleIds = new Set(step.events.flatMap((e) => (e.t === 'FightCompleted' && e.titleKey ? [e.fightId] : [])));
+      for (const id of Object.keys(step.titleFightLogs)) expect(titleIds.has(id)).toBe(true);
+      current = step.world;
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 });

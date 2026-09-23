@@ -1,6 +1,6 @@
 import { STYLE_AXES, type Fighter, type Rng, type StyleAxes } from '@bm/core-model';
 import {
-  simulateFight, EMPTY_PLAN, type FightContext, type FightMethod, type FightPlan,
+  simulateFight, EMPTY_PLAN, type FightContext, type FightEvent, type FightMethod, type FightPlan,
   type FighterSnapshot, type JudgeProfile,
 } from '@bm/engine-fight';
 import {
@@ -15,6 +15,11 @@ export interface ResolvedFight {
   winner: 'a' | 'b' | null;
   endingRound: number;
   tier: SimTier;
+  /**
+   * Лог бою — лише для рівня 1, єдиного, що його має. Світ його не зберігає (це Q25);
+   * `advanceDay` віддає лог титульних боїв назовні, щоб подання могло розповісти бій.
+   */
+  eventLog?: readonly FightEvent[];
 }
 
 const toSnapshot = (f: Fighter): FighterSnapshot => ({
@@ -67,8 +72,8 @@ function resolveTier1(
     planB: planFor(b, plans.b),
     threeKnockdownRule: false,
   };
-  const { result } = simulateFight(toSnapshot(a), toSnapshot(b), context, rng);
-  return { method: result.method, winner: result.winner, endingRound: result.endingRound, tier: 1 };
+  const { result, eventLog } = simulateFight(toSnapshot(a), toSnapshot(b), context, rng);
+  return { method: result.method, winner: result.winner, endingRound: result.endingRound, tier: 1, eventLog };
 }
 
 const pickFromHistogram = (histogram: readonly number[], rng: Rng): number => {

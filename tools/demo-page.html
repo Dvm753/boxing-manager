@@ -8,10 +8,12 @@
   :root[data-theme="dark"]{
     --bg:#0f1117; --panel:#171a22; --panel2:#1e222c; --line:#2b3040; --sidebar:#13161e;
     --ink:#e9ebf2; --dim:#949aad; --accent:#e0574a; --accent2:#6c8cd5; --ok:#4fbf87;
+    --lv1:#d03b3b; --lv2:#c98500; --lv3:#199e70; --lv4:#9085e9; --up:#0ca30c; --down:#d03b3b;
   }
   :root[data-theme="light"]{
     --bg:#f4f5f8; --panel:#ffffff; --panel2:#eef0f5; --line:#d8dce6; --sidebar:#e9ecf3;
     --ink:#1a1d26; --dim:#5f6678; --accent:#c8412f; --accent2:#3a5ea8; --ok:#1f8a5b;
+    --lv1:#d03b3b; --lv2:#eda100; --lv3:#1baf7a; --lv4:#4a3aa7; --up:#0a7d0a; --down:#b52f2f;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
@@ -76,6 +78,18 @@
   .bar2 i{display:block;height:100%;background:var(--accent)}
   .bar2.ax i{background:var(--accent2)}
   .attr .v{font-family:ui-monospace,monospace;width:20px;text-align:right;flex:none}
+  /* Рівні атрибута в дусі FM (шкала 1–20): 1–5 слабко, 6–10 посередньо, 11–15 добре, 16–20 еліта.
+     Палітру перевірено на розрізнення при дальтонізмі в обох темах; число поруч — завжди. */
+  .bar2.lv1 i{background:var(--lv1)} .bar2.lv2 i{background:var(--lv2)}
+  .bar2.lv3 i{background:var(--lv3)} .bar2.lv4 i{background:var(--lv4)}
+  .attr .d{font-family:ui-monospace,monospace;width:28px;font-size:11.5px;flex:none;text-align:left}
+  .attr .d.up{color:var(--up)} .attr .d.down{color:var(--down)}
+  .lvlegend{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--dim);margin:0 0 10px}
+  .lvlegend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  .eventcard{border:1px solid var(--accent);border-radius:10px;padding:14px;margin-bottom:12px;background:var(--panel2)}
+  .vs{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start}
+  .vs .mid{font-weight:700;color:var(--accent);padding-top:4px}
+  .linklike{background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;text-decoration:underline dotted}
   .note{background:var(--panel2);border-left:2px solid var(--accent2);padding:8px 10px;
     font-size:12.5px;color:var(--dim);border-radius:0 6px 6px 0;margin-top:10px}
   .meta{color:var(--dim);font-size:13px}
@@ -131,6 +145,7 @@
 
     <section id="sec-world">
       <h1 data-i18n="nav.world">Світ</h1>
+      <div id="eventout"></div>
       <div class="panel">
         <div class="row">
           <div class="field"><label for="seed" data-i18n="ui.seed">Seed</label><input id="seed" type="number" value="2026"></div>
@@ -251,6 +266,9 @@
               шукає бій сам, тож порожніх років більше немає</li>
           <li class="yes">Тиждень гравця — <code>ADR-0023</code>: пропозиції боїв, три фази табору, план на бій</li>
           <li class="yes">Тиждень за тижнем — кнопка «Далі»: гравець сам відповідає на пропозиції боїв, фази табору й план на бій; світ один і живий</li>
+          <li class="yes">Вечір поясів: гра зупиняється перед титульними боями з анонсом, «Далі» проводить їх і показує резюме</li>
+          <li class="yes">Тактику суперника обирає його тренер; бій — лише в межах однієї вагової категорії</li>
+          <li class="no">Розвиток і старіння атрибутів — пропозиція ADR-0031, ще не погоджена</li>
           <li class="no">Це не гра, а інструмент спостереження за симуляцією</li>
         </ul>
       </div>
@@ -279,6 +297,18 @@
     b: { plan:'distance', scenario:'B' },
   };
   var coachSkill = 12;
+  // Тренер суперника (заглушка скілу, як і ваш — ADR-0028): план і сценарій суперника
+  // обирає він, за придатністю до атрибутів свого бійця, а не гравець.
+  var OPPONENT_COACH_SKILL = 12;
+  function opponentCoachPick(fighter, seedVal){
+    var rows = BM.coachAdvice(fighter, seedVal+1, OPPONENT_COACH_SKILL);
+    var best = rows[0];
+    rows.forEach(function(r){ if(r.suitability > best.suitability) best = r; });
+    return { plan: best.plan, scenario: best.scenario };
+  }
+  function sameWeight(x, y){
+    return x.constants.naturalWeightClassId === y.constants.naturalWeightClassId;
+  }
   var advisorOn = true;
   var MAX_STABLE=3;
   // Політика гравця: те, що в грі буде вибором щотижня, тут задається наперед (ADR-0023).
@@ -376,7 +406,7 @@
     });
   }
 
-  function renderAll(){ renderBar(); renderTable(); renderCard(); renderFight(); renderForm(); renderCampPlan(); renderDecisions(); renderStable(); renderNews(); renderRankings(); }
+  function renderAll(){ renderEvents(); renderBar(); renderTable(); renderCard(); renderFight(); renderForm(); renderCampPlan(); renderDecisions(); renderStable(); renderNews(); renderRankings(); }
 
   function renderBar(){
     document.getElementById('barDate').innerHTML =
@@ -436,13 +466,32 @@
   document.getElementById('grp').addEventListener('change', renderTable);
   document.getElementById('sty').addEventListener('change', renderTable);
 
+  // Рівень атрибута (FM-подібно): 1–5, 6–10, 11–15, 16–20 — чотири кольори.
+  function attrLevel(v){ return v<=5 ? 1 : v<=10 ? 2 : v<=15 ? 3 : 4; }
+  // Зміна атрибута за останній період (зелене +, червоне −). Порожньо, якщо змін немає.
+  function attrDelta(f, k){
+    var d = f.attributeDelta ? (f.attributeDelta[k] || 0) : 0;
+    if(!d) return '<span class="d"></span>';
+    return '<span class="d '+(d>0?'up':'down')+'">'+(d>0?'▲+'+d:'▼−'+(-d))+'</span>';
+  }
+  function levelLegend(){
+    return '<div class="lvlegend">'+[1,2,3,4].map(function(n){
+      return '<span><i style="background:var(--lv'+n+')"></i>'+esc(t('ui.attrLevel.'+n))+'</span>';
+    }).join('')+'</div>';
+  }
   function attrBlock(title, keys, f){
     return '<div class="attrgrp"><h3>'+esc(title)+'</h3>'+keys.map(function(k){
       var v=f.attributes[k];
       return '<div class="attr"><span class="nm">'+esc(t('attribute.'+k))+'</span>'+
-        '<span class="bar2"><i style="width:'+(v/20*100)+'%"></i></span>'+
-        '<span class="v">'+v+'</span></div>';
+        '<span class="bar2 lv'+attrLevel(v)+'"><i style="width:'+(v/20*100)+'%"></i></span>'+
+        '<span class="v">'+v+'</span>'+attrDelta(f, k)+'</div>';
     }).join('')+'</div>';
+  }
+  // Динаміка атрибутів чесно: поки розвиток бійця не змодельовано, змін не буває.
+  function developmentNote(f){
+    return '<div class="note" style="margin:0 0 10px">'+
+      (f.attributeDeltaWeeks ? t('ui.attrDeltaPeriod', { weeks: f.attributeDeltaWeeks })+' ' : '')+
+      t('ui.attrDevelopmentPending')+'</div>';
   }
   function axesBlock(f){
     return '<div class="attrgrp"><h3>'+t('ui.styleAxes')+' → '+esc(t('style.'+BM.styleLabel(f.styleAxes)))+'</h3>'+
@@ -490,8 +539,15 @@
 
   function renderCard(){
     var el=document.getElementById('card');
-    var f = rows.filter(function(x){return x.id===selId;})[0];
+    var f = rows.filter(function(x){return x.id===selId;})[0]
+      || (world ? world.fighters.filter(function(x){return x.id===selId;})[0] : null);
     if(!f){ el.innerHTML='<div class="meta">'+t('ui.selectFighter')+'</div>'; return; }
+    // Бій — лише в межах однієї вагової категорії (правила органів) і не сам із собою.
+    var blockA = !!(slotB && (slotB.id===f.id || !sameWeight(slotB, f)));
+    var blockB = !!(slotA && (slotA.id===f.id || !sameWeight(slotA, f)));
+    var weightNote = (blockA || blockB)
+      ? '<div class="note" style="margin:-4px 0 12px">'+t('ui.pickSameWeight', {
+          weight: esc(t('weightClass.'+(slotA || slotB).constants.naturalWeightClassId)) })+'</div>' : '';
     el.innerHTML =
       '<h2 style="margin:0 0 2px;font-size:17px">'+esc(f.name)+'</h2>'+
       '<div class="meta" style="margin-bottom:12px">'+
@@ -505,13 +561,14 @@
           ? '<br><b style="color:var(--accent)">'+t('ui.unavailableUntil')+' '+BM.formatIso(f.unavailableUntil)+'</b>' : '')+
       '</div>'+
       '<div class="row" style="margin-bottom:12px">'+
-        '<button class="act" id="pickA">'+t('ui.pickA')+'</button>'+
-        '<button class="act" id="pickB">'+t('ui.pickB')+'</button>'+
+        '<button class="act" id="pickA"'+(blockA ? ' disabled' : '')+'>'+t('ui.pickA')+'</button>'+
+        '<button class="act" id="pickB"'+(blockB ? ' disabled' : '')+'>'+t('ui.pickB')+'</button>'+
         '<button class="act" id="pickMine"'+
           (myIds.indexOf(f.id)>=0 || myIds.length>=MAX_STABLE ? ' disabled' : '')+'>'+
-          t('ui.takeUnderCare')+'</button></div>'+
+          t('ui.takeUnderCare')+'</button></div>'+weightNote+
       axesBlock(f)+
       signaturesBlock(f)+
+      levelLegend()+developmentNote(f)+
       attrBlock(t('attrGroup.technical'), BM.groups.technical, f)+
       attrBlock(t('attrGroup.physical'), BM.groups.physical, f)+
       attrBlock(t('attrGroup.mental'), BM.groups.mental, f)+
@@ -523,8 +580,8 @@
       historyBlock(f)+
       '<div class="note">'+t('ui.potentialRange')+': <b>'+f.potentialRange[0]+'–'+f.potentialRange[1]+
       '</b> — '+t('ui.rangeNotNumber')+'.<br>'+t('ui.hiddenAttributes')+'</div>';
-    document.getElementById('pickA').addEventListener('click', function(){ slotA=f; fightRound=1; show('fight'); renderFight(); });
-    document.getElementById('pickB').addEventListener('click', function(){ slotB=f; fightRound=1; show('fight'); renderFight(); });
+    document.getElementById('pickA').addEventListener('click', function(){ if(blockA) return; slotA=f; fightRound=1; show('fight'); renderFight(); });
+    document.getElementById('pickB').addEventListener('click', function(){ if(blockB) return; slotB=f; fightRound=1; show('fight'); renderFight(); });
     document.getElementById('pickMine').addEventListener('click', function(){
       if(myIds.indexOf(f.id)<0 && myIds.length<MAX_STABLE){ myIds.push(f.id); season = BM.takeUnderCare(f.id); }
       renderCard(); renderDecisions(); renderStable(); show('career');
@@ -542,7 +599,15 @@
         (slotA ? '<br>A: '+esc(slotA.name) : '')+(slotB ? '<br>B: '+esc(slotB.name) : '')+'</div>';
       return;
     }
+    // Правила органів: бій лише в межах однієї вагової категорії.
+    if(!sameWeight(slotA, slotB)){
+      el.innerHTML = '<div class="note">'+t('ui.sameWeightOnly', {
+        a: esc(slotA.name), wa: esc(t('weightClass.'+slotA.constants.naturalWeightClassId)),
+        b: esc(slotB.name), wb: esc(t('weightClass.'+slotB.constants.naturalWeightClassId)) })+'</div>';
+      return;
+    }
     var seedVal = parseInt(document.getElementById('seed').value,10)||0;
+    strategy.b = opponentCoachPick(slotB, seedVal);
     var out = BM.runFight(slotA, slotB, seedVal, take, strategy.a, strategy.b, advisorOn);
     var r = out.result;
     var names = { a: slotA.name, b: slotB.name };
@@ -550,6 +615,15 @@
     // План і сценарій A/B/C перед боєм (ADR-0028) — окремо для кожної сторони,
     // з придатністю за порадою тренера (шум залежить від coachSkill).
     function strategySide(side, fighter){
+      // Сторона суперника: вибір робить його тренер; гравець дізнається план лише після бою.
+      if(side==='b'){
+        var revealedPlan = reachedEnd
+          ? esc(t('strategyPlan.'+strategy.b.plan))+' · '+strategy.b.scenario+' — '+esc(t('strategyScenario.'+strategy.b.scenario))
+          : t('ui.opponentPlanHidden');
+        return '<div style="flex:1;min-width:220px">'+
+          '<div class="meta" style="margin-bottom:4px">'+esc(fighter.name)+'</div>'+
+          '<div class="note" style="margin:0">'+t('ui.opponentCoachChooses')+'<br><b>'+revealedPlan+'</b></div></div>';
+      }
       var advice = BM.coachAdvice(fighter, seedVal, coachSkill);
       var sel = strategy[side];
       var grid = BM.STRATEGY_PLANS.map(function(plan){
@@ -577,6 +651,14 @@
         '<td class="meta" style="text-align:center;font-size:11px">B</td><td class="meta" style="text-align:center;font-size:11px">C</td></tr></thead>'+
         '<tbody>'+grid+'</tbody></table></div>';
     }
+    // Уся статистика — **похідна від EventLog** (ADR-0003): рушій нічого не додає.
+    var rounds = BM.buildRoundStats(out.eventLog);
+    if(fightRound !== null && fightRound > rounds.length) fightRound = rounds.length;
+    // Прогресивний перегляд: свіжий бій показується по раундах, а не результатом
+    // одразу — для динамічності. "Увесь бій" (fightRound===null) лишається способом
+    // одразу перескочити в кінець, хто не хоче гортати.
+    var revealed = fightRound === null ? rounds.length : fightRound;
+    var reachedEnd = revealed >= rounds.length;
     var strategyPanel =
       '<div class="sub">'+t('ui.strategyPlan')+' / '+t('ui.strategyScenario')+'</div>'+
       '<div class="row" style="gap:16px;align-items:flex-start;margin-bottom:8px">'+
@@ -589,14 +671,6 @@
           '<input id="advisorToggle" type="checkbox"'+(advisorOn?' checked':'')+'>'+t('ui.advisorToggle')+'</label>'+
       '</div>';
 
-    // Уся статистика — **похідна від EventLog** (ADR-0003): рушій нічого не додає.
-    var rounds = BM.buildRoundStats(out.eventLog);
-    if(fightRound !== null && fightRound > rounds.length) fightRound = rounds.length;
-    // Прогресивний перегляд: свіжий бій показується по раундах, а не результатом
-    // одразу — для динамічності. "Увесь бій" (fightRound===null) лишається способом
-    // одразу перескочити в кінець, хто не хоче гортати.
-    var revealed = fightRound === null ? rounds.length : fightRound;
-    var reachedEnd = revealed >= rounds.length;
     var sel = fightRound === null ? BM.totalStats(rounds) : rounds[fightRound-1];
     // Втома і шкода — знімок наприкінці раунду (Q31), не сума: для «увесь бій»
     // показуємо стан на кінець останнього відомого раунду — наскільки розбиті вийшли.
@@ -697,10 +771,10 @@
 
     // Поради кута, застосовані під час бою (ADR-0028) — лише вже переглянуті раунди.
     var visibleAdvice = out.advice.filter(function(x){ return x.round <= revealed; });
-    // Сценарій B не зсуває осей, тож за ADR-0028 кут цієї сторони не має меж для порад —
-    // кажемо про це прямо, щоб тиша кута не виглядала як поломка.
+    // Якщо сценарій не дає кутові меж для порад (ADR-0028 §6), кажемо про це прямо,
+    // щоб тиша кута не виглядала як поломка. З Q35 межі має кожен із A/B/C.
     var silentCorners = ['a','b'].filter(function(side){
-      return Object.keys(BM.STRATEGY_SCENARIO_AXES[strategy[side].scenario]).length===0;
+      return Object.keys(BM.STRATEGY_SCENARIO_ADVICE_BOUNDS[strategy[side].scenario]).length===0;
     }).map(function(side){
       return '<div class="ln dim">'+t('ui.cornerNoRoom', { name: esc(names[side]) })+'</div>';
     }).join('');
@@ -789,13 +863,124 @@
     var btn=document.getElementById('runseason'); btn.disabled=true;
     setTimeout(function(){
       season = BM.advanceWeek();
-      lastWeek = { days: season.daysAdvanced, fights: season.playerFights };
+      lastWeek = { days: season.daysAdvanced, fights: season.playerFights,
+        announce: season.titleAnnouncement || [], results: season.titleResults || [] };
       refreshWorld();
       btn.disabled=false;
       renderAll();
-      if(season.decisions.length || season.playerFights.length) show('career');
+      // Після «Далі» — завжди головний екран «Світ»: анонс чи резюме поясів і підсумок тижня там.
+      show('world');
+      window.scrollTo(0, 0);
     }, 20);
   });
+
+  // ── центральна панель «Світу»: вечір поясів і підсумок тижня ─────────────
+  function cornerHtml(c){
+    if(!c) return '<div class="meta">—</div>';
+    var atk = c.attack.map(function(x){ return esc(t('signature.'+x)); }).join(', ');
+    var dfn = c.defense.map(function(x){ return esc(t('signature.'+x)); }).join(', ');
+    return '<div><div style="font-size:16px;font-weight:650">'+esc(c.name)+'</div>'+
+      '<div style="margin:2px 0 6px">'+(c.champion ? '<b style="color:var(--accent)">'+t('ui.champion')+'</b>'
+        : (c.position ? t('ui.rankPos', { n: c.position }) : t('ui.challenger')))+'</div>'+
+      '<div class="meta">'+c.countryCode+' · '+c.age+' '+t('ui.years')+' · '+esc(t('style.'+c.style))+' · '+esc(t('stance.'+c.stance))+'<br>'+
+        t('ui.record')+' '+c.record.wins+'–'+c.record.losses+'–'+c.record.draws+' ('+c.record.knockouts+' KO)<br>'+
+        t('ui.height')+' '+BM.formatLength(c.heightCm,S,t('unit.cm'))+' · '+t('ui.reach')+' '+BM.formatLength(c.reachCm,S,t('unit.cm'))+'<br>'+
+        t('ui.sharpness')+' '+Math.round(c.sharpness)+' · '+t('ui.freshness')+' '+Math.round(c.freshness)+
+        (atk ? '<br>'+t('ui.signatures')+': '+atk : '')+
+        (dfn ? '<br>'+t('ui.defenseSignatures')+': '+dfn : '')+'</div></div>';
+  }
+  function titleHeader(card){
+    return '<div class="meta" style="margin-bottom:8px">'+esc(t('body.'+card.bodyId))+' · '+
+      esc(t('weightClass.'+card.weightClassId))+' · '+t('ui.roundsN', { n: card.rounds })+' · '+
+      (card.vacant ? '<b>'+t('ui.vacantTitle')+'</b>' : t('ui.defenceNo', { n: card.defences + 1 }))+'</div>';
+  }
+  function announceHtml(card){
+    return '<div class="eventcard">'+titleHeader(card)+
+      '<div class="vs">'+cornerHtml(card.a)+'<div class="mid">VS</div>'+cornerHtml(card.b)+'</div></div>';
+  }
+  function momentList(sum, kind, names, sideKey){
+    var list = sum.moments.filter(function(m){ return m.kind===kind; }).map(function(m){
+      return t('ui.sum.atRound', { name: esc(names[m[sideKey]]), round: m.round });
+    });
+    return list.join(', ');
+  }
+  function resultHtml(res){
+    var card = res.card;
+    var names = { a: card.a ? card.a.name : '—', b: card.b ? card.b.name : '—' };
+    if(res.cancelled) return '<div class="eventcard">'+titleHeader(card)+'<b>'+esc(names.a)+' — '+esc(names.b)+'</b>: '+t('ui.fightCancelled')+'</div>';
+    var sm = res.summary;
+    var head = sm.winner===null
+      ? t('ui.sum.draw', { a: esc(names.a), b: esc(names.b), method: esc(t('method.'+sm.method)) })
+      : t((sm.method==='KO' || sm.method==='TKO' || sm.method==='RTD') ? 'ui.sum.headline' : 'ui.sum.headlineDecision',
+          { winner: esc(names[sm.winner]), loser: esc(names[sm.winner==='a'?'b':'a']),
+            method: esc(t('method.'+sm.method)), round: sm.endingRound });
+    var champ = sm.winner===null ? null : names[sm.winner];
+    var outcome = res.outcome==='newChampion' ? t('ui.outcome.newChampion', { name: esc(champ) })
+      : res.outcome==='vacantWon' ? t('ui.outcome.vacantWon', { name: esc(champ) })
+      : res.outcome==='defended' ? t('ui.outcome.defended', { name: esc(champ) })
+      : t('ui.outcome.noChange');
+    var judged = sm.roundsWon.a + sm.roundsWon.b + sm.roundsWon.even;
+    var lines = [];
+    // Ранній стоп: двох-трьох суджених раундів замало, щоб говорити про раунди —
+    // переважання видно з влучань.
+    var la = sm.totals.a.landed, lb = sm.totals.b.landed;
+    if(judged<3 && sm.winner!==null && Math.max(la,lb) >= 1.5*Math.max(1, Math.min(la,lb))){
+      var top = la>=lb ? 'a' : 'b';
+      lines.push(t('ui.sum.outlanded', { name: esc(names[top]), x: sm.totals[top].landed, y: sm.totals[top==='a'?'b':'a'].landed }));
+    } else if(judged>0){
+      lines.push(sm.dominant
+        ? t('ui.sum.dominant', { name: esc(names[sm.dominant]), won: sm.roundsWon[sm.dominant], total: judged })
+        : t('ui.sum.even', { a: sm.roundsWon.a, b: sm.roundsWon.b, even: sm.roundsWon.even }));
+    }
+    if(sm.comeback) lines.push(t('ui.sum.comeback', { name: esc(names[sm.winner]) }));
+    var kd = momentList(sm, 'knockdown', names, 'by'); if(kd) lines.push(t('ui.sum.knockdowns', { list: kd }));
+    var cuts = momentList(sm, 'cut', names, 'on'); if(cuts) lines.push(t('ui.sum.cuts', { list: cuts }));
+    var warn = momentList(sm, 'warning', names, 'by'); if(warn) lines.push(t('ui.sum.warnings', { list: warn }));
+    var ded = momentList(sm, 'deduction', names, 'by'); if(ded) lines.push(t('ui.sum.deductions', { list: ded }));
+    ['a','b'].forEach(function(side){
+      var tt = sm.totals[side];
+      lines.push(t('ui.sum.punches', { name: esc(names[side]), landed: tt.landed, thrown: tt.thrown,
+        acc: Math.round(res.accuracy[side]), power: tt.power }));
+    });
+    if(res.scorecards && res.scorecards.length && sm.method!=='KO' && sm.method!=='TKO' && sm.method!=='RTD'){
+      lines.push(t('ui.sum.scorecards', { cards: res.scorecards.map(function(c){ return c[0]+'–'+c[1]; }).join(', ') }));
+    }
+    var inj = ['a','b'].filter(function(side){ return res.injuries[side]; }).map(function(side){
+      return t('ui.sum.injury', { name: esc(names[side]), days: res.injuries[side] });
+    });
+    lines.push(inj.length ? inj.join(' · ') : t('ui.sum.noInjuries'));
+    return '<div class="eventcard">'+titleHeader(card)+
+      '<div style="font-size:16px;font-weight:650;margin-bottom:2px">'+head+'</div>'+
+      '<div style="color:var(--accent);font-weight:600;margin-bottom:8px">'+outcome+'</div>'+
+      lines.map(function(l){ return '<div class="newsrow">'+l+'</div>'; }).join('')+'</div>';
+  }
+  function renderEvents(){
+    var el = document.getElementById('eventout');
+    if(!el) return;
+    if(!lastWeek){ el.innerHTML=''; return; }
+    var html = '';
+    if(lastWeek.announce.length){
+      html += '<div class="panel"><h2 style="margin:0 0 4px;font-size:18px">'+t('ui.titleNight', { date: lastWeek.announce[0].date })+'</h2>'+
+        '<div class="meta" style="margin-bottom:10px">'+t('ui.titleNightHint')+'</div>'+
+        lastWeek.announce.map(announceHtml).join('')+'</div>';
+    }
+    if(lastWeek.results.length){
+      html += '<div class="panel"><h2 style="margin:0 0 10px;font-size:18px">'+t('ui.titleResults', { date: lastWeek.results[0].card.date })+'</h2>'+
+        lastWeek.results.map(resultHtml).join('')+'</div>';
+    }
+    var pending = (season && season.decisions) ? season.decisions.length : 0;
+    html += '<div class="panel"><div class="meta">'+t('ui.weekResult', { days: lastWeek.days })+'</div>'+
+      (lastWeek.fights.length ? lastWeek.fights.map(function(f){
+          return '<div class="newsrow">'+f.date+' — '+esc(f.fighterName)+' · '+esc(f.opponentName)+' · '+
+            esc(t('method.'+f.method))+' · '+(f.won===null ? t('ui.draw') : (f.won ? 'W' : 'L'))+' ('+f.endingRound+')</div>';
+        }).join('') : '')+
+      (pending ? '<div class="row" style="margin-top:8px;gap:8px;align-items:center"><b>'+t('ui.decisionsWaiting', { n: pending })+'</b>'+
+        '<button class="act" id="toCareerBtn">'+t('ui.toCareer')+'</button></div>' : '')+
+      '</div>';
+    el.innerHTML = html;
+    var btn = document.getElementById('toCareerBtn');
+    if(btn) btn.addEventListener('click', function(){ show('career'); });
+  }
 
   // Рішення підопічних (ADR-0020, ADR-0023). Значення за замовчуванням — з «Мого плану
   // табору»; відповідь застосовується на початку наступного дня, як і в світі.
@@ -895,6 +1080,18 @@
       el.innerHTML='<div class="meta">'+myIds.length+' · '+t('ui.noCareer')+'</div>'; return;
     }
     el.innerHTML = season.stable.map(stableCard).join('<hr style="border:0;border-top:1px solid var(--line);margin:14px 0">');
+    // Профіль свого бійця — та сама картка, що й у «Бійцях», з поточного стану світу.
+    el.querySelectorAll('[data-profile]').forEach(function(b){
+      b.addEventListener('click', function(){ openProfile(b.getAttribute('data-profile')); });
+    });
+  }
+  function openProfile(id){
+    selId = id;
+    show('fighters');
+    renderTable(); renderCard();
+    var row = document.querySelector('#tbl tbody tr[data-id="'+id+'"]');
+    if(row) row.scrollIntoView({ block: 'center' });
+    document.getElementById('card').scrollIntoView({ block: 'start' });
   }
 
   function stableCard(v){
@@ -916,7 +1113,8 @@
             (f.won===null ? t('ui.draw') : (f.won ? 'W' : 'L'))+' ('+f.endingRound+')</div>';
         }).join('')
       : '<div class="meta">—</div>';
-    return '<h2 style="margin:0 0 2px;font-size:17px">'+esc(v.name)+'</h2>'+
+    return '<h2 style="margin:0 0 2px;font-size:17px"><button class="linklike" data-profile="'+v.fighterId+'">'+esc(v.name)+'</button>'+
+      ' <button class="act" data-profile="'+v.fighterId+'" style="font-size:12px;padding:3px 9px;margin-left:6px">'+t('ui.profile')+'</button></h2>'+
       '<div class="meta" style="margin-bottom:10px">'+v.age+' '+t('ui.years')+' · '+
         t('ui.record')+' '+v.record.wins+'–'+v.record.losses+'–'+v.record.draws+
         ' ('+v.record.knockouts+' KO)'+
