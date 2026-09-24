@@ -147,6 +147,10 @@ export type WorldEvent =
       titleKey?: string;
     }
   | { t: 'FighterRecordUpdated'; fighterId: string; day: number }
+  /** День народження (ADR-0031): новий вік бійця. */
+  | { t: 'FighterAged'; fighterId: string; day: number; age: number }
+  /** Тижневий розвиток (ADR-0031): зміни атрибутів, завжди ±1 на атрибут. */
+  | { t: 'FighterDeveloped'; fighterId: string; day: number; changes: Readonly<Record<string, number>> }
   | { t: 'FighterWearIncreased'; fighterId: string; rounds: number; headDelta: number }
   | { t: 'FighterInjured'; fighterId: string; daysOut: number }
   /**

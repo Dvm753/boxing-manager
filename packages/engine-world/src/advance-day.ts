@@ -16,14 +16,15 @@ import type { PlayerCommand, World, WorldEvent } from './types.js';
 const GROUP_OF: Record<string, string> = Object.fromEntries(WEIGHT_CLASSES.map((w) => [w.id, w.group]));
 
 /**
- * Результат дня. `titleFightLogs` — лог кожного титульного бою цього дня за `fight.id`;
- * **не частина стану світу** і в сейв не йде (зберігати логи чи ні — Q25). Додаткове
+ * Результат дня. `featuredFightLogs` — лог кожного бою дня, який треба **показати**, а не
+ * лише порахувати: титульні бої (ADR-0026) і бої підопічних гравця (ADR-0023). За `fight.id`.
+ * **Не частина стану світу** і в сейв не йде (зберігати логи чи ні — Q25). Додаткове
  * поле: наявні виклики, що читають лише `world` і `events`, не змінюються.
  */
 export interface DayResult {
   world: World;
   events: WorldEvent[];
-  titleFightLogs: Record<string, readonly FightEvent[]>;
+  featuredFightLogs: Record<string, readonly FightEvent[]>;
 }
 
 /**
@@ -77,7 +78,7 @@ export function advanceDay(
 
   const tierIndex = buildTierIndex(current);
   const initial: WorldEvent[] = [];
-  const titleFightLogs: Record<string, readonly FightEvent[]> = {};
+  const featuredFightLogs: Record<string, readonly FightEvent[]> = {};
 
   // Порядок боїв фіксується сортуванням за id: порядок у масиві не є частиною стану.
   for (const fight of [...due].sort((x, y) => (x.id < y.id ? -1 : 1))) {
@@ -96,7 +97,11 @@ export function advanceDay(
     const plans = camp?.plan === undefined ? {} : camp.fighterId === fight.aId
       ? { a: camp.plan } : { b: camp.plan };
     const resolved = resolveFight(tier, a, b, fight.scheduledRounds, fightRng, group, plans);
-    if (fight.titleKey !== undefined && resolved.eventLog) titleFightLogs[fight.id] = resolved.eventLog;
+    // Бій підопічного — завжди рівень 1 (`buildTierIndex`), тож лог у нього є; гравець має
+    // побачити власний бій, а не лише дізнатися результат зі зміненої статистики.
+    const featured = fight.titleKey !== undefined
+      || current.playerFighterIds.includes(fight.aId) || current.playerFighterIds.includes(fight.bId);
+    if (featured && resolved.eventLog) featuredFightLogs[fight.id] = resolved.eventLog;
 
     initial.push({
       t: 'FightCompleted',
@@ -125,5 +130,5 @@ export function advanceDay(
   }
 
   const after = dispatch(current, initial, HANDLERS);
-  return { world: after.world, events: [...before.events, ...after.events], titleFightLogs };
+  return { world: after.world, events: [...before.events, ...after.events], featuredFightLogs };
 }

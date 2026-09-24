@@ -1,0 +1,33 @@
+{
+  "_note": "Розвиток і старіння бійця (ADR-0031). Шанси — на ОДИН атрибут за ОДИН тижневий тік; крок завжди ±1. Клас A: змінює атрибути, а отже й бої.",
+  "tickEveryDays": 7,
+  "peakAge": {
+    "_note": "Вік піку за ваговою групою + індивідуальний розкид ±spread (детермінований від id). Важкі дозрівають пізніше.",
+    "byGroup": { "light": 28, "middle": 29, "heavy": 31 },
+    "spread": 2
+  },
+  "growth": {
+    "_note": "Ріст до прихованої стелі (у межах potentialRange). youth = (пік − вік) / youthSpanYears, у межах [minYouth, maxYouth]. Біля стелі шанс згасає лінійно на taperPoints.",
+    "base": 0.011,
+    "youthSpanYears": 8,
+    "minYouth": 0.15,
+    "maxYouth": 1.2,
+    "taperPoints": 1.5,
+    "workRateWeight": 0.6,
+    "focusMultiplier": 1.6
+  },
+  "decline": {
+    "_note": "Спад після піку: base × (вік − пік) × вага групи атрибутів. Знос голови прискорює спад щелепи.",
+    "base": 0.0035,
+    "groupWeight": { "physical": 1.0, "technical": 0.4, "mental": 0.2 },
+    "chinPerHeadTrauma": 0.02
+  },
+  "focusGroups": {
+    "_note": "Який фокус фази табору (ADR-0023) підсилює ріст якої групи атрибутів.",
+    "strength": "physical",
+    "stamina": "physical",
+    "technique": "technical",
+    "sparring": "mental",
+    "tactics": "mental"
+  }
+}

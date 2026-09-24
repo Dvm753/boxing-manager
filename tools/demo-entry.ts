@@ -391,15 +391,15 @@ const titleFightsOn = (world: World, day: number): ScheduledFight[] =>
     .sort((x, y) => (x.id < y.id ? -1 : 1));
 
 /** Боєць у картці титульного бою — стан **до** бою (рекорд, позиція, прийоми). */
-function titleCorner(world: World, fighterId: string, titleKey: string): unknown {
+function titleCorner(world: World, fighterId: string, titleKey: string | null): unknown {
   const f = world.fighters[fighterId];
   if (!f) return null;
-  const row = (world.rankings[titleKey] ?? []).find((r) => r.fighterId === fighterId);
+  const row = titleKey === null ? undefined : (world.rankings[titleKey] ?? []).find((r) => r.fighterId === fighterId);
   return {
     id: f.id, name: f.name, countryCode: f.countryCode, age: f.age, record: f.record,
     stance: f.constants.stance, heightCm: f.constants.heightCm, reachCm: f.constants.reachCm,
     style: styleLabel(f.styleAxes),
-    champion: world.titles[titleKey]?.championId === fighterId,
+    champion: titleKey !== null && world.titles[titleKey]?.championId === fighterId,
     position: row?.position ?? null,
     attack: attackSignatures(f.attributes), defense: defenseSignatures(f.attributes),
     sharpness: f.condition.sharpness, freshness: f.condition.freshness,
@@ -437,19 +437,62 @@ function titleResult(
   const defended = events.find((e) => e.t === 'TitleDefended' && e.titleKey === fight.titleKey);
   const summary = buildFightSummary(log);
   // Підсумкові картки суддів — сума карток раундів кожного судді, як їх оголошують у рингу.
-  const scorecards: [number, number][] = [];
-  for (const round of buildRoundStats(log)) {
-    (round.cards ?? []).forEach(([a, b], i) => {
-      const acc = scorecards[i] ?? [0, 0];
-      scorecards[i] = [acc[0] + a, acc[1] + b];
-    });
-  }
+  const scorecards = totalScorecards(log);
   return {
     card, cancelled: false, summary, scorecards,
     accuracy: { a: accuracy(summary.totals.a), b: accuracy(summary.totals.b) },
     injuries: { a: injuryOf(fight.aId), b: injuryOf(fight.bId) },
     outcome: won ? (won.t === 'TitleWon' && won.vacant ? 'vacantWon' : 'newChampion')
       : defended ? 'defended' : 'noChange',
+  };
+}
+
+/** Бої підопічних на цей день — їх гравець має побачити сам, а не з оновленої статистики. */
+const playerFightsOn = (world: World, day: number): ScheduledFight[] =>
+  world.schedule.filter((f) => f.day === day
+    && (world.playerFighterIds.includes(f.aId) || world.playerFighterIds.includes(f.bId)))
+    .sort((x, y) => (x.id < y.id ? -1 : 1));
+
+/** Анонс бою підопічного: суперник, дата, план на бій, обраний у таборі (ADR-0023). */
+function playerFightCard(world: World, fight: ScheduledFight): unknown {
+  const mine = world.playerFighterIds.includes(fight.aId) ? 'a' : 'b';
+  const camp = world.camps.find((c) => c.fightId === fight.id);
+  return {
+    fightId: fight.id, date: formatIso(fight.day), rounds: fight.scheduledRounds,
+    titleKey: fight.titleKey ?? null, mine, plan: camp?.plan ?? null,
+    a: titleCorner(world, fight.aId, fight.titleKey ?? null),
+    b: titleCorner(world, fight.bId, fight.titleKey ?? null),
+  };
+}
+
+/** Підсумкові картки суддів — сума карток раундів кожного судді. */
+function totalScorecards(log: readonly FightEvent[]): [number, number][] {
+  const cards: [number, number][] = [];
+  for (const round of buildRoundStats(log)) {
+    (round.cards ?? []).forEach(([a, b], i) => {
+      const acc = cards[i] ?? [0, 0];
+      cards[i] = [acc[0] + a, acc[1] + b];
+    });
+  }
+  return cards;
+}
+
+/**
+ * Бій підопічного для перегляду: **той самий лог, що визначив результат у світі** —
+ * екран бою показує його раунд за раундом, результат лише в кінці.
+ */
+function playerFightReplay(
+  before: World, fight: ScheduledFight, log: readonly FightEvent[] | undefined,
+): unknown {
+  const card = playerFightCard(before, fight);
+  if (!log) return { card, cancelled: true };
+  const summary = buildFightSummary(log);
+  return {
+    card, cancelled: false, eventLog: log,
+    result: {
+      method: summary.method, winner: summary.winner, endingRound: summary.endingRound,
+      scorecards: totalScorecards(log),
+    },
   };
 }
 
@@ -465,24 +508,31 @@ function advanceWeek(): unknown {
   let daysAdvanced = 0;
   let titleAnnouncement: unknown[] = [];
   let titleResults: unknown[] = [];
+  let playerFightAnnouncement: unknown[] = [];
+  let playerFightReplays: unknown[] = [];
 
   for (let d = 0; d < 7; d++) {
     // День поясів: спершу зупинка з анонсом, і лише наступне «Далі» проводить бої.
     const tomorrow = lastWorld.day + 1;
     const titleToday = titleFightsOn(lastWorld, tomorrow);
-    if (titleToday.length > 0 && announcedDay !== tomorrow) {
+    // Бій підопічного — теж зупинка перед днем бою: гравець не повинен дізнаватися
+    // про власний бій зі зміненої статистики (так було до 2026-09-24).
+    const mineToday = playerFightsOn(lastWorld, tomorrow);
+    if ((titleToday.length > 0 || mineToday.length > 0) && announcedDay !== tomorrow) {
       announcedDay = tomorrow;
       titleAnnouncement = titleToday.map((f) => titleCard(lastWorld as World, f));
+      playerFightAnnouncement = mineToday.map((f) => playerFightCard(lastWorld as World, f));
       break;
     }
     const before = lastWorld;
     const commands = queued;
     queued = [];
-    const { world, events, titleFightLogs } = simulateDay(lastWorld, clock, commands);
+    const { world, events, featuredFightLogs } = simulateDay(lastWorld, clock, commands);
     lastWorld = world;
     daysAdvanced++;
-    if (titleToday.length > 0) {
-      titleResults = titleToday.map((f) => titleResult(before, events, f, titleFightLogs[f.id]));
+    if (titleToday.length > 0 || mineToday.length > 0) {
+      titleResults = titleToday.map((f) => titleResult(before, events, f, featuredFightLogs[f.id]));
+      playerFightReplays = mineToday.map((f) => playerFightReplay(before, f, featuredFightLogs[f.id]));
       announcedDay = null;
     }
     for (const event of events) {
@@ -500,7 +550,7 @@ function advanceWeek(): unknown {
     }
     const fresh = world.decisions.some((x) => !seen.has(x.id) && world.playerFighterIds.includes(x.fighterId));
     // Після дня поясів — теж пауза: резюме боїв треба прочитати, а не прогорнути.
-    if (fresh || titleResults.length > 0) break;
+    if (fresh || titleResults.length > 0 || playerFightReplays.length > 0) break;
   }
 
   const lastSnap = snapshots.at(-1);
@@ -508,7 +558,10 @@ function advanceWeek(): unknown {
 
   const open = new Set(lastWorld.decisions.map((d) => d.id));
   for (const id of [...answered]) if (!open.has(id)) answered.delete(id);
-  return { ...(liveSummary() as object), daysAdvanced, playerFights, titleAnnouncement, titleResults };
+  return {
+    ...(liveSummary() as object), daysAdvanced, playerFights,
+    titleAnnouncement, titleResults, playerFightAnnouncement, playerFightReplays,
+  };
 }
 
 window.BM = {
@@ -519,6 +572,7 @@ window.BM = {
   STRATEGY_SCENARIO_ADVICE_BOUNDS, coachAdvice,
   runFight, simulateSeason, exportCareer, importCareer, formatIso,
   newWorld, worldFighters, takeUnderCare, answerDecision, advanceWeek, liveSummary,
+  SCHEDULED_ROUNDS,
   buildCommentary, buildRoundStats, totalStats, accuracy, renderLine,
   createTranslator, LOCALES, LOCALE_NAMES, UNIT_SYSTEMS, THEMES,
   formatLength, formatWeight, formatMoney,

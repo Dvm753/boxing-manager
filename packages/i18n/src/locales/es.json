@@ -347,7 +347,7 @@
   "ui.attrLevel.3": "11–15 bueno",
   "ui.attrLevel.4": "16–20 élite",
   "ui.attrDeltaPeriod": "Cambios de atributos en las últimas {weeks} semanas.",
-  "ui.attrDevelopmentPending": "El desarrollo y el envejecimiento aún no están modelados: los atributos no cambian (propuesta ADR-0031 pendiente).",
+  "ui.attrDevelopmentPending": "El desarrollo y el envejecimiento están aprobados (ADR-0031) y escritos, pero aún no activados: falta una decisión sobre dos pruebas existentes.",
   "ui.rankPos": "N.º {n} del ranking",
   "ui.challenger": "Retador",
   "ui.roundsN": "{n} asaltos",
@@ -383,5 +383,15 @@
   "ui.opponentPlanHidden": "se revela tras el combate",
   "ui.profile": "Perfil",
   "ui.sum.outlanded": "{name} dominó los intercambios: {x} golpes contra {y}",
-  "ui.sum.headlineDecision": "{winner} vence a {loser} — {method} tras {round} asaltos"
+  "ui.sum.headlineDecision": "{winner} vence a {loser} — {method} tras {round} asaltos",
+  "ui.myFightTomorrow": "Combate de su púgil — {date}",
+  "ui.myFightHint": "El juego se detiene antes del combate. Pulse Continuar y véalo asalto a asalto.",
+  "ui.myPlan": "Plan de combate",
+  "ui.planByCoach": "por defecto del entrenador",
+  "ui.myFightDone": "El combate de su púgil se ha celebrado",
+  "ui.watchFight": "Ver el combate",
+  "ui.careerFightNote": "Combate de carrera: es el combate celebrado en el mundo — el resultado ya está en el récord.",
+  "ui.yourFighter": "Su púgil: {name}",
+  "ui.careerCornerNote": "Los consejos de esquina aún no están conectados a los combates de carrera — el combate sigue el plan del campamento.",
+  "ui.backToExhibition": "Volver al combate de exhibición"
 }

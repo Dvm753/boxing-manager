@@ -347,7 +347,7 @@
   "ui.attrLevel.3": "11–15 buono",
   "ui.attrLevel.4": "16–20 élite",
   "ui.attrDeltaPeriod": "Variazioni degli attributi nelle ultime {weeks} settimane.",
-  "ui.attrDevelopmentPending": "Sviluppo e invecchiamento non sono ancora modellati — gli attributi non cambiano (proposta ADR-0031 in attesa).",
+  "ui.attrDevelopmentPending": "Sviluppo e invecchiamento sono approvati (ADR-0031) e scritti, ma non ancora attivati: si attende una decisione su due test esistenti.",
   "ui.rankPos": "N. {n} del ranking",
   "ui.challenger": "Sfidante",
   "ui.roundsN": "{n} riprese",
@@ -383,5 +383,15 @@
   "ui.opponentPlanHidden": "svelato dopo l'incontro",
   "ui.profile": "Profilo",
   "ui.sum.outlanded": "{name} ha dominato gli scambi: {x} colpi a segno contro {y}",
-  "ui.sum.headlineDecision": "{winner} batte {loser} — {method} dopo {round} riprese"
+  "ui.sum.headlineDecision": "{winner} batte {loser} — {method} dopo {round} riprese",
+  "ui.myFightTomorrow": "Incontro del tuo pugile — {date}",
+  "ui.myFightHint": "Il gioco si ferma prima dell'incontro. Premi Avanti e seguilo ripresa per ripresa.",
+  "ui.myPlan": "Piano di gara",
+  "ui.planByCoach": "predefinito dell'allenatore",
+  "ui.myFightDone": "L'incontro del tuo pugile si è svolto",
+  "ui.watchFight": "Guarda l'incontro",
+  "ui.careerFightNote": "Incontro di carriera: è proprio l'incontro disputato nel mondo — il risultato è già nel record.",
+  "ui.yourFighter": "Il tuo pugile: {name}",
+  "ui.careerCornerNote": "I consigli dell'angolo non sono ancora collegati agli incontri di carriera — l'incontro segue il piano del ritiro.",
+  "ui.backToExhibition": "Torna all'incontro d'esibizione"
 }

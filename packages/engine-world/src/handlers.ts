@@ -271,7 +271,31 @@ const newsHandler: EventHandler = (event, world) => {
   };
 };
 
+/** Вік і атрибути (ADR-0031). Змінює лише агрегат бійця; межі 1–20 утримуються тут. */
+const developmentHandler: EventHandler = (event, world) => {
+  if (event.t === 'FighterAged') {
+    const fighter = world.fighters[event.fighterId];
+    if (!fighter) return unchanged(world);
+    return { world: { ...world, fighters: { ...world.fighters, [fighter.id]: { ...fighter, age: event.age } } } };
+  }
+  if (event.t !== 'FighterDeveloped') return unchanged(world);
+  const fighter = world.fighters[event.fighterId];
+  if (!fighter) return unchanged(world);
+  const attributes = { ...fighter.attributes } as Record<string, number>;
+  for (const [key, delta] of Object.entries(event.changes)) {
+    const value = attributes[key];
+    if (value === undefined) continue;
+    attributes[key] = Math.max(1, Math.min(20, value + delta));
+  }
+  return {
+    world: {
+      ...world,
+      fighters: { ...world.fighters, [fighter.id]: { ...fighter, attributes: attributes as typeof fighter.attributes } },
+    },
+  };
+};
+
 export const HANDLERS: readonly EventHandler[] = [
   recordHandler, wearHandler, availabilityHandler, conditionHandler,
-  campInjuryHandler, withdrawalHandler, titleHandler, newsHandler,
+  campInjuryHandler, withdrawalHandler, titleHandler, newsHandler, developmentHandler,
 ];

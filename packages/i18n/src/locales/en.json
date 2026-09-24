@@ -347,7 +347,7 @@
   "ui.attrLevel.3": "11–15 good",
   "ui.attrLevel.4": "16–20 elite",
   "ui.attrDeltaPeriod": "Attribute changes over the last {weeks} weeks.",
-  "ui.attrDevelopmentPending": "Fighter development and ageing are not modelled yet — attributes do not change (proposal ADR-0031 awaits approval).",
+  "ui.attrDevelopmentPending": "Development and ageing are approved (ADR-0031) and written, but not switched on in the world yet: that awaits the owner's decision on two existing tests. Attributes do not change for now.",
   "ui.rankPos": "Ranked #{n}",
   "ui.challenger": "Challenger",
   "ui.roundsN": "{n} rounds",
@@ -383,5 +383,15 @@
   "ui.opponentPlanHidden": "revealed after the fight",
   "ui.profile": "Profile",
   "ui.sum.outlanded": "{name} controlled the exchanges: {x} landed to {y}",
-  "ui.sum.headlineDecision": "{winner} beats {loser} — {method} after {round} rounds"
+  "ui.sum.headlineDecision": "{winner} beats {loser} — {method} after {round} rounds",
+  "ui.myFightTomorrow": "Your fighter's bout — {date}",
+  "ui.myFightHint": "The game has paused before the bout. Press Continue — the bout takes place and you watch it round by round.",
+  "ui.myPlan": "Game plan",
+  "ui.planByCoach": "coach's default",
+  "ui.myFightDone": "Your fighter's bout has taken place",
+  "ui.watchFight": "Watch the bout",
+  "ui.careerFightNote": "Career bout: this is the very bout that took place in the world — the result is already on the record. Page through the rounds; the result comes at the end.",
+  "ui.yourFighter": "Your fighter: {name}",
+  "ui.careerCornerNote": "Corner advice is not yet wired into career bouts (audit proposal #4) — the bout follows the camp game plan.",
+  "ui.backToExhibition": "Back to exhibition bout"
 }

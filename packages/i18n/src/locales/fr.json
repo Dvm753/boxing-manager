@@ -347,7 +347,7 @@
   "ui.attrLevel.3": "11–15 bon",
   "ui.attrLevel.4": "16–20 élite",
   "ui.attrDeltaPeriod": "Évolution des attributs sur les {weeks} dernières semaines.",
-  "ui.attrDevelopmentPending": "Le développement et le vieillissement ne sont pas encore modélisés — les attributs ne changent pas (proposition ADR-0031 en attente).",
+  "ui.attrDevelopmentPending": "Le développement et le vieillissement sont approuvés (ADR-0031) et écrits, mais pas encore activés : cela attend une décision sur deux tests existants.",
   "ui.rankPos": "Classé n°{n}",
   "ui.challenger": "Challenger",
   "ui.roundsN": "{n} rounds",
@@ -383,5 +383,15 @@
   "ui.opponentPlanHidden": "révélé après le combat",
   "ui.profile": "Profil",
   "ui.sum.outlanded": "{name} a dominé les échanges : {x} coups touchés contre {y}",
-  "ui.sum.headlineDecision": "{winner} bat {loser} — {method} après {round} rounds"
+  "ui.sum.headlineDecision": "{winner} bat {loser} — {method} après {round} rounds",
+  "ui.myFightTomorrow": "Combat de votre boxeur — {date}",
+  "ui.myFightHint": "Le jeu s'arrête avant le combat. Appuyez sur Continuer pour le suivre round par round.",
+  "ui.myPlan": "Plan de combat",
+  "ui.planByCoach": "par défaut de l'entraîneur",
+  "ui.myFightDone": "Le combat de votre boxeur a eu lieu",
+  "ui.watchFight": "Voir le combat",
+  "ui.careerFightNote": "Combat de carrière : c'est le combat réellement disputé — le résultat est déjà enregistré.",
+  "ui.yourFighter": "Votre boxeur : {name}",
+  "ui.careerCornerNote": "Les conseils du coin ne sont pas encore reliés aux combats de carrière — le combat suit le plan du camp.",
+  "ui.backToExhibition": "Retour au combat d'exhibition"
 }

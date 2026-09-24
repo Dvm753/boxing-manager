@@ -123,7 +123,7 @@ describe('титульні бої дня (доповнення ADR-0026)', () =>
       for (const e of step.events) {
         if (e.t !== 'FightCompleted' || e.titleKey === undefined) continue;
         expect(e.tier).toBe(1);
-        const log = step.titleFightLogs[e.fightId];
+        const log = step.featuredFightLogs[e.fightId];
         expect(log).toBeDefined();
         const summary = buildFightSummary(log ?? []);
         const winnerId = summary.winner === null ? null : summary.winner === 'a' ? e.aId : e.bId;
@@ -132,11 +132,41 @@ describe('титульні бої дня (доповнення ADR-0026)', () =>
         expect(summary.endingRound).toBe(e.endingRound);
         checked++;
       }
-      // Лог — лише для титульних боїв: звичайні бої не повинні роздувати результат дня.
+      // Лог — лише для боїв, які треба показати: звичайні бої не роздувають результат дня.
+      // У цьому світі підопічних немає, тож лишаються тільки титульні.
       const titleIds = new Set(step.events.flatMap((e) => (e.t === 'FightCompleted' && e.titleKey ? [e.fightId] : [])));
-      for (const id of Object.keys(step.titleFightLogs)) expect(titleIds.has(id)).toBe(true);
+      for (const id of Object.keys(step.featuredFightLogs)) expect(titleIds.has(id)).toBe(true);
       current = step.world;
     }
     expect(checked).toBeGreaterThan(0);
+  });
+});
+
+describe('бій підопічного (ADR-0023)', () => {
+  it('лог бою підопічного віддається світом, і резюме збігається з записом у його історії', () => {
+    let start = buildWorld(2026, 600);
+    const mine = Object.keys(start.fighters)[1] as string;
+    start = startCareer(start, mine);
+    const clock = startSeasonClock(start);
+    let current = start;
+    let seen = 0;
+    for (let d = 0; d < 300 && seen === 0; d++) {
+      const step = simulateDay(current, clock, decide(current));
+      for (const e of step.events) {
+        if (e.t !== 'FightCompleted' || (e.aId !== mine && e.bId !== mine)) continue;
+        expect(e.tier).toBe(1);
+        const log = step.featuredFightLogs[e.fightId];
+        expect(log).toBeDefined();
+        const summary = buildFightSummary(log ?? []);
+        const side = e.aId === mine ? 'a' : 'b';
+        const entry = step.world.history[mine]?.at(-1);
+        expect(entry?.fightId).toBe(e.fightId);
+        expect(entry?.won).toBe(summary.winner === null ? null : summary.winner === side);
+        expect(entry?.method).toBe(summary.method);
+        seen++;
+      }
+      current = step.world;
+    }
+    expect(seen).toBe(1);
   });
 });

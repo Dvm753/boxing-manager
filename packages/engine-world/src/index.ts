@@ -9,3 +9,4 @@ export * from './decisions.js';
 export * from './resolve-fight.js';
 export * from './rankings.js';
 export * from './advance-day.js';
+export * from './development.js';

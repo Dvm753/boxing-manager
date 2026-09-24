@@ -10,3 +10,4 @@ export * from './fight-plans.js';
 export * from './strategy-plans.js';
 export * from './matchmaking-tuning.js';
 export * from './fighter-generator.js';
+export * from './development-tuning.js';

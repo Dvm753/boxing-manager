@@ -347,7 +347,7 @@
   "ui.attrLevel.3": "11–15 gut",
   "ui.attrLevel.4": "16–20 Elite",
   "ui.attrDeltaPeriod": "Attributsänderungen der letzten {weeks} Wochen.",
-  "ui.attrDevelopmentPending": "Entwicklung und Altern sind noch nicht modelliert — Attribute ändern sich nicht (Vorschlag ADR-0031 wartet auf Freigabe).",
+  "ui.attrDevelopmentPending": "Entwicklung und Altern sind freigegeben (ADR-0031) und geschrieben, aber noch nicht aktiviert: das wartet auf eine Entscheidung zu zwei bestehenden Tests.",
   "ui.rankPos": "Rang {n}",
   "ui.challenger": "Herausforderer",
   "ui.roundsN": "{n} Runden",
@@ -383,5 +383,15 @@
   "ui.opponentPlanHidden": "wird nach dem Kampf bekannt",
   "ui.profile": "Profil",
   "ui.sum.outlanded": "{name} beherrschte den Schlagabtausch: {x} zu {y} Treffern",
-  "ui.sum.headlineDecision": "{winner} besiegt {loser} — {method} nach {round} Runden"
+  "ui.sum.headlineDecision": "{winner} besiegt {loser} — {method} nach {round} Runden",
+  "ui.myFightTomorrow": "Kampf Ihres Boxers — {date}",
+  "ui.myFightHint": "Das Spiel hält vor dem Kampf. Drücken Sie Weiter und verfolgen Sie ihn Runde für Runde.",
+  "ui.myPlan": "Kampfplan",
+  "ui.planByCoach": "Standard des Trainers",
+  "ui.myFightDone": "Der Kampf Ihres Boxers hat stattgefunden",
+  "ui.watchFight": "Kampf ansehen",
+  "ui.careerFightNote": "Karrierekampf: genau der Kampf aus der Welt — das Ergebnis steht schon im Rekord.",
+  "ui.yourFighter": "Ihr Boxer: {name}",
+  "ui.careerCornerNote": "Eckenratschläge sind in Karrierekämpfen noch nicht angebunden — der Kampf folgt dem Plan aus dem Camp.",
+  "ui.backToExhibition": "Zurück zum Schaukampf"
 }
